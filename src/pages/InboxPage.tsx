@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, ArrowLeft, LogOut, User } from 'lucide-react';
+import { Menu, ArrowLeft, LogOut } from 'lucide-react';
 
 export function InboxPage() {
   const navigate = useNavigate();

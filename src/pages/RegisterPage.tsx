@@ -11,7 +11,7 @@ import type { RegisterCredentials } from '../types/auth';
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register: registerUser, isAuthenticated, error: authError } = useAuth();
+  const { register: registerUser, isAuthenticated} = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {

@@ -12,7 +12,7 @@ import type { LoginCredentials } from '../types/auth';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginWithGoogle, isAuthenticated, error: authError } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated } = useAuth();
 
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
