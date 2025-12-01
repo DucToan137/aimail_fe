@@ -199,6 +199,8 @@ export const emailService = {
       const firstMessage = thread.messages[0];
       const from = parseEmailAddress(firstMessage.from);
       const to = parseEmailAddresses(firstMessage.to);
+      const cc = firstMessage.cc ? parseEmailAddresses(firstMessage.cc) : undefined;
+      const bcc = firstMessage.bcc ? parseEmailAddresses(firstMessage.bcc) : undefined;
 
       const messages = thread.messages.map(msg => ({
         id: msg.id,
@@ -218,19 +220,25 @@ export const emailService = {
         })),
       }));
 
+      const labelIds = thread.labelIds || [];
+      const isRead = !labelIds.includes('UNREAD');
+      const isStarred = labelIds.includes('STARRED');
+
       return {
         id: thread.id,
         threadId: thread.id,
         messageId: firstMessage.messageId,
         from,
         to,
+        cc,
+        bcc,
         subject: firstMessage.subject || '(No Subject)',
         preview: thread.snippet || firstMessage.snippet || '',
         body: firstMessage.textBody || firstMessage.snippet || '',
         htmlBody: firstMessage.htmlBody,
         timestamp: firstMessage.date || new Date().toISOString(),
-        isRead: true,
-        isStarred: false,
+        isRead,
+        isStarred,
         hasAttachments: firstMessage.attachments.length > 0,
         attachments: firstMessage.attachments.map((att, idx) => ({
           id: att.attachmentId || `${firstMessage.id}-${idx}`,

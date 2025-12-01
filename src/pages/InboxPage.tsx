@@ -248,7 +248,15 @@ export function InboxPage() {
         ? email.subject 
         : `Re: ${email.subject}`;
       
-      const replyBody = `\n\n---\nOn ${new Date(email.timestamp).toLocaleString()}, ${email.from.name} <${email.from.email}> wrote:\n> ${email.body.replace(/\n/g, '\n> ')}`;
+      const replyBody = `\n\nOn ${new Date(email.timestamp).toLocaleString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      })}, ${email.from.name} <${email.from.email}> wrote:\n\n> ${email.body.replace(/\n/g, '\n> ')}`;
       
       setComposeDefaults({
         to: email.from.email,
@@ -268,7 +276,15 @@ export function InboxPage() {
         ? email.subject 
         : `Re: ${email.subject}`;
       
-      const replyBody = `\n\n---\nOn ${new Date(email.timestamp).toLocaleString()}, ${email.from.name} <${email.from.email}> wrote:\n> ${email.body.replace(/\n/g, '\n> ')}`;
+      const replyBody = `\n\nOn ${new Date(email.timestamp).toLocaleString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      })}, ${email.from.name} <${email.from.email}> wrote:\n\n> ${email.body.replace(/\n/g, '\n> ')}`;
       
       const allRecipients = [
         email.from.email,
@@ -294,7 +310,19 @@ export function InboxPage() {
         ? email.subject 
         : `Fwd: ${email.subject}`;
       
-      const forwardBody = `\n\n---\nForwarded message from ${email.from.name} <${email.from.email}>\nDate: ${new Date(email.timestamp).toLocaleString()}\nSubject: ${email.subject}\n\n${email.body}`;
+      const formattedDate = new Date(email.timestamp).toLocaleString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: false
+      });
+      
+      const toRecipients = email.to.map(r => `${r.name} <${r.email}>`).join(', ');
+      
+      const forwardBody = `\n\n---------- Forwarded message ---------\nFrom: ${email.from.name} <${email.from.email}>\nDate: ${formattedDate}\nSubject: ${email.subject}\nTo: ${toRecipients}\n\n${email.body}`;
       
       setComposeDefaults({
         to: '',

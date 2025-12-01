@@ -40,6 +40,8 @@ export interface MessageDetailResponse {
   messageId: string;
   from: string;
   to: string;
+  cc?: string;
+  bcc?: string;
   subject: string;
   date: string;
   snippet: string;
@@ -52,6 +54,7 @@ export interface ThreadDetailResponse {
   id: string;
   snippet: string;
   messages: MessageDetailResponse[];
+  labelIds?: string[];
 }
 
 export interface GmailSendResponse {
@@ -66,7 +69,7 @@ export interface Mailbox {
   icon: string;
   unreadCount?: number;
   type: 'inbox' | 'starred' | 'sent' | 'drafts' | 'archive' | 'trash' | 'spam' | 'custom';
-  isMain?: boolean; // True for main labels, false for secondary/collapsible labels
+  isMain?: boolean;
 }
 
 export interface EmailAttachment {
@@ -90,6 +93,10 @@ export interface Email {
     email: string;
   }>;
   cc?: Array<{
+    name: string;
+    email: string;
+  }>;
+  bcc?: Array<{
     name: string;
     email: string;
   }>;

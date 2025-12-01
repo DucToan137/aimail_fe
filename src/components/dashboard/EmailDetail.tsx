@@ -1,11 +1,12 @@
 import type { Email } from '@/types/email';
-import { Reply, ReplyAll, Forward, Trash2, MailOpen, Star, Download, Mail, Inbox, Trash } from 'lucide-react';
+import { Reply, ReplyAll, Forward, Trash2, MailOpen, Star, Download, Mail, Inbox, Trash, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { emailService } from '@/services/emailService';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface EmailDetailProps {
   email: Email | null;
@@ -18,6 +19,85 @@ interface EmailDetailProps {
   onMoveToInbox?: () => void;
   onToggleRead: () => void;
   onToggleStar: () => void;
+}
+
+function RecipientsList({ 
+  to, 
+  cc,
+  bcc, 
+  mailboxId 
+}: { 
+  to: Array<{ name: string; email: string }>; 
+  cc?: Array<{ name: string; email: string }>;
+  bcc?: Array<{ name: string; email: string }>;
+  mailboxId: string;
+}) {
+  const [showAll, setShowAll] = useState(false);
+
+  const hasMultipleRecipients = to.length > 1 || (cc && cc.length > 0) || (bcc && bcc.length > 0);
+
+  return (
+    <div className="text-xs sm:text-sm text-gray-600">
+      {!showAll ? (
+        <div className="flex items-center gap-1">
+          <span className="text-gray-500">
+            {mailboxId === 'SENT' ? 'To: ' : 'To: '}
+          </span>
+          <span>
+            {to.length > 0 && `${to[0].name} <${to[0].email}>`}
+            {to.length > 1 && `, +${to.length - 1}`}
+            {cc && cc.length > 0 && to.length === 1 && `, +${cc.length}`}
+            {bcc && bcc.length > 0 && to.length === 1 && !cc && `, +${bcc.length}`}
+          </span>
+          {hasMultipleRecipients && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="ml-1 hover:bg-gray-200 rounded p-0.5 transition-colors"
+            >
+              <ChevronDown className="h-3 w-3 text-gray-500" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <div className="flex items-center gap-1">
+            <span className="text-gray-500">To: </span>
+            <button
+              onClick={() => setShowAll(false)}
+              className="ml-auto hover:bg-gray-200 rounded p-0.5 transition-colors"
+            >
+              <ChevronDown className="h-3 w-3 text-gray-500 rotate-180" />
+            </button>
+          </div>
+          {to.map((recipient, idx) => (
+            <div key={idx} className="pl-6">
+              {recipient.name} &lt;{recipient.email}&gt;
+            </div>
+          ))}
+          {cc && cc.length > 0 && (
+            <>
+              <div className="text-gray-500">Cc: </div>
+              {cc.map((recipient, idx) => (
+                <div key={idx} className="pl-6">
+                  {recipient.name} &lt;{recipient.email}&gt;
+                </div>
+              ))}
+            </>
+          )}
+          {bcc && bcc.length > 0 && (
+            <>
+              <div className="text-gray-500">Bcc: </div>
+              {bcc.map((recipient, idx) => (
+                <div key={idx} className="pl-6">
+                  {recipient.name} &lt;{recipient.email}&gt;
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function EmailDetail({
@@ -151,15 +231,12 @@ export function EmailDetail({
                           <span className="font-medium text-sm sm:text-base text-gray-900">{message.from.name}</span>
                           <span className="text-xs sm:text-sm text-gray-500 truncate">&lt;{message.from.email}&gt;</span>
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-600">
-                          <span className="text-gray-500">To: </span>
-                          {message.to.map((recipient, idx) => (
-                            <span key={idx}>
-                              {idx > 0 && ', '}
-                              {recipient.name} &lt;{recipient.email}&gt;
-                            </span>
-                          ))}
-                        </div>
+                        <RecipientsList 
+                          to={message.to} 
+                          cc={email.cc}
+                          bcc={email.bcc}
+                          mailboxId={mailboxId}
+                        />
                       </div>
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 whitespace-nowrap shrink-0">
