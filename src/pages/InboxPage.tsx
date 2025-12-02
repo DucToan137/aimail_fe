@@ -59,6 +59,7 @@ export function InboxPage() {
       setSelectedEmailId(urlEmailId || null);
       setShowEmailDetail(!!urlEmailId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlMailboxId, urlEmailId]);
 
   // Load emails when mailbox changes
@@ -74,7 +75,7 @@ export function InboxPage() {
       setMailboxes(data);
     } catch (error) {
       console.error('Failed to load mailboxes:', error);
-      toast.error('Không thể tải danh sách hộp thư');
+      toast.error('Failed to load mailboxes');
     } finally {
       setIsLoadingMailboxes(false);
     }

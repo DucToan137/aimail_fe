@@ -56,15 +56,21 @@ export function ComposeEmailModal({
   }, [isOpen, defaultTo, defaultCc, defaultBcc, defaultSubject, defaultBody]);
 
   const handleSend = async () => {
-    if (!to || !subject) {
-      toast.error('Please fill in recipient and subject');
+    const hasRecipients = to.trim() || cc.trim() || bcc.trim();
+    if (!hasRecipients) {
+      toast.error('Please specify at least one recipient (To, Cc, or Bcc)');
+      return;
+    }
+    
+    if (!subject) {
+      toast.error('Please fill in subject');
       return;
     }
 
     setIsSending(true);
     try {
       await onSend({ 
-        to, 
+        to: to || '', 
         subject, 
         body,
         cc: cc || undefined,
