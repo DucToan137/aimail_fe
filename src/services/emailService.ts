@@ -1,4 +1,5 @@
 import { apiClient } from '../api/apiClient';
+import { cookieManager } from '../utils/tokenManager';
 import type {
   Mailbox,
   Email,
@@ -264,10 +265,10 @@ export const emailService = {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     const params = new URLSearchParams({ filename, mimeType });
     
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('accessToken='));
-    const accessToken = cookieValue ? cookieValue.split('=')[1] : '';
+    const accessToken = cookieManager.getAccessToken();
+    if (!accessToken) {
+      throw new Error('Not authenticated');
+    }
     
     const response = await fetch(
       `${baseURL}/emails/${messageId}/attachments/${attachmentId}?${params.toString()}`,
@@ -371,10 +372,10 @@ export const emailService = {
       });
     }
 
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('accessToken='));
-    const accessToken = cookieValue ? cookieValue.split('=')[1] : '';
+    const accessToken = cookieManager.getAccessToken();
+    if (!accessToken) {
+      throw new Error('Not authenticated');
+    }
     
     const response = await fetch(`${baseURL}/emails/send`, {
       method: 'POST',
