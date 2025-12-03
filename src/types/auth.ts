@@ -21,10 +21,6 @@ export interface RegisterCredentials {
   password: string;
 }
 
-export interface GoogleAuthCredentials {
-  idToken: string; // JWT credential from Google
-}
-
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;

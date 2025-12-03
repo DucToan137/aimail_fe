@@ -5,13 +5,13 @@ import type {
   AuthState,
   LoginCredentials,
   RegisterCredentials,
-  GoogleAuthCredentials,
 } from '../types/auth';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
-  loginWithGoogle: (credentials: GoogleAuthCredentials) => Promise<void>;
+  redirectToGoogle: (state?: string) => void;
+  handleGoogleCallback: (code: string, state?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
@@ -168,11 +168,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const loginWithGoogle = useCallback(async (credentials: GoogleAuthCredentials) => {
+  const redirectToGoogle = useCallback((state?: string) => {
+    const authUrl = authService.getGoogleAuthUrl(state);
+    window.location.href = authUrl;
+  }, []);
+
+  const handleGoogleCallback = useCallback(async (code: string, state?: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await authService.loginWithGoogle(credentials);
+      const response = await authService.handleGoogleCallback(code, state);
       cookieManager.setTokens(response.accessToken, response.refreshToken);
 
       const user = authService.getUserFromToken(response.accessToken, response.email);
@@ -232,7 +237,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...state,
     login,
     register,
-    loginWithGoogle,
+    redirectToGoogle,
+    handleGoogleCallback,
     logout,
     refreshAuth,
   };

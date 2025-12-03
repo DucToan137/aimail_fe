@@ -2,7 +2,6 @@ import { apiClient } from '../api/apiClient';
 import type {
   LoginCredentials,
   RegisterCredentials,
-  GoogleAuthCredentials,
   AuthResponse,
   RefreshTokenResponse,
   User,
@@ -17,9 +16,30 @@ class AuthService {
     return apiClient.post<AuthResponse>('/auth/register', credentials, { skipAuth: true });
   }
 
-  async loginWithGoogle(credentials: GoogleAuthCredentials): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>('/auth/google', credentials, { skipAuth: true });
+  /**
+   * Get Google OAuth authorization URL
+   * Redirects user to Google for authentication
+   */
+  getGoogleAuthUrl(state?: string): string {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const url = new URL(`${baseURL}/auth/google/authorize`);
+    if (state) {
+      url.searchParams.append('state', state);
+    }
+    return url.toString();
   }
+
+  /**
+   * Handle Google OAuth callback
+   * This would be called from the callback page with the authorization code
+   */
+  async handleGoogleCallback(code: string, state?: string): Promise<AuthResponse> {
+  return apiClient.post<AuthResponse>(
+    '/auth/google/callback',
+    { code, state },
+    { skipAuth: true }
+  );
+}
 
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
     return apiClient.post<RefreshTokenResponse>('/auth/refresh', { refreshToken }, { skipAuth: true });
