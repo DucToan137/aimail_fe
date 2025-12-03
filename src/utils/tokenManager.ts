@@ -65,13 +65,33 @@ export const cookieManager = {
   setAccessToken(token: string): void {
     setCookie(ACCESS_TOKEN_KEY, token, {
       expires: ACCESS_TOKEN_EXPIRY_DAYS,
-      secure: true,
+      secure: false, // Set to false for localhost development
       sameSite: 'Lax',
     });
+    console.log('Access token set:', `${token.substring(0, 20)}...`);
   },
 
   getAccessToken(): string | null {
-    return getCookie(ACCESS_TOKEN_KEY);
+    const token = getCookie(ACCESS_TOKEN_KEY);
+    console.log('Getting access token:', token ? `${token.substring(0, 20)}...` : 'null');
+    
+    // Debug: Decode JWT payload to see what's inside
+    if (token) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          console.log('Token payload:', payload);
+          console.log('Token exp:', payload.exp ? new Date(payload.exp * 1000) : 'No exp');
+          console.log('Token iss:', payload.iss);
+          console.log('Token aud:', payload.aud);
+        }
+      } catch (e) {
+        console.log('Failed to decode token:', e);
+      }
+    }
+    
+    return token;
   },
 
   clearAccessToken(): void {
@@ -81,9 +101,10 @@ export const cookieManager = {
   setRefreshToken(token: string): void {
     setCookie(REFRESH_TOKEN_KEY, token, {
       expires: REFRESH_TOKEN_EXPIRY_DAYS,
-      secure: true,
+      secure: false, // Set to false for localhost development
       sameSite: 'Lax',
     });
+    console.log('Refresh token set:', `${token.substring(0, 20)}...`);
   },
 
   getRefreshToken(): string | null {

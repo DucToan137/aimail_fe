@@ -63,13 +63,17 @@ class AuthService {
       
       const payload = JSON.parse(jsonPayload);
       
-      const userEmail = email || payload.sub || payload.email || 'unknown@example.com';
+      // Prioritize email parameter, then payload email fields
+      const userEmail = email || payload.email || payload.sub || 'unknown@example.com';
+      
+      // Determine provider based on email parameter or token payload
+      const provider = email ? 'google' : (payload.provider as 'email' | 'google') || 'email';
       
       return {
         id: payload.sub || payload.userId || 'unknown',
         email: userEmail,
         name: userEmail.split('@')[0],
-        provider: (payload.provider as 'email' | 'google') || 'email',
+        provider,
       };
     } catch (error) {
       console.error('Failed to decode token:', error);

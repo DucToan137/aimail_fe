@@ -14,6 +14,7 @@ interface AuthContextType extends AuthState {
   handleGoogleCallback: (code: string, state?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
+  setAuthState: (accessToken: string, refreshToken: string, email: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -225,11 +226,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const accessToken = cookieManager.getAccessToken();
       if (accessToken) {
-        const user = authService.getUserFromToken(accessToken);
-        setState(prev => ({ ...prev, user }));
+        // Try to get email from existing user state first, then decode token
+        const existingEmail = state.user?.email;
+        const user = authService.getUserFromToken(accessToken, existingEmail);
+        setState(prev => ({ ...prev, user, isAuthenticated: true }));
       }
     } catch (error) {
       console.error('Failed to refresh auth:', error);
+    }
+  }, [state.user?.email]);
+
+  const setAuthState = useCallback((accessToken: string, refreshToken: string, email: string) => {
+    try {
+      cookieManager.setTokens(accessToken, refreshToken);
+      const user = authService.getUserFromToken(accessToken, email);
+      setState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      console.error('Failed to set auth state:', error);
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Failed to authenticate user',
+      });
     }
   }, []);
 
@@ -241,6 +265,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     handleGoogleCallback,
     logout,
     refreshAuth,
+    setAuthState,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

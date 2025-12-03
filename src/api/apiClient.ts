@@ -32,6 +32,9 @@ class ApiClient {
       const accessToken = cookieManager.getAccessToken();
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
+        console.log('API Request - Authorization header set with token from:', accessToken.substring(0, 30) + '...');
+      } else {
+        console.log('API Request - No access token found');
       }
     }
 
