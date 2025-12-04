@@ -25,21 +25,18 @@ export const AuthCallbackPage: React.FC = () => {
       const email = searchParams.get('email');
       const error = searchParams.get('error');
 
-      // Debug logging
       console.log('AuthCallback - Tokens received:', {
         accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'null',
         refreshToken: refreshToken ? `${refreshToken.substring(0, 20)}...` : 'null',
         email
       });
 
-      // Handle OAuth errors
       if (error) {
         toast.error(`Google authentication failed: ${error}`);
         navigate('/login', { replace: true });
         return;
       }
 
-      // Handle missing tokens
       if (!accessToken || !refreshToken || !email) {
         toast.error('Authentication tokens not received');
         navigate('/login', { replace: true });
@@ -47,13 +44,11 @@ export const AuthCallbackPage: React.FC = () => {
       }
 
       try {
-        // Set authentication state with tokens and email
         setAuthState(accessToken, refreshToken, email);
         
         toast.success('Google sign-in successful!');
         setIsProcessed(true);
         
-        // Navigate to inbox after a short delay to ensure state is updated
         setTimeout(() => {
           navigate('/inbox', { replace: true });
         }, 100);

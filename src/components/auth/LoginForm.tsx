@@ -11,9 +11,6 @@ interface LoginFormProps {
   isLoading?: boolean;
 }
 
-/**
- * LoginForm Component
- */
 export const LoginForm: React.FC<LoginFormProps> = ({
   onSubmit,
   isLoading = false,
@@ -30,7 +27,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Email Field */}
       <div>
         <Label htmlFor="email">Email</Label>
         <div className="relative mt-1">
@@ -56,7 +52,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         )}
       </div>
 
-      {/* Password Field */}
       <div>
         <Label htmlFor="password">Password</Label>
         <div className="relative mt-1">
@@ -82,7 +77,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         )}
       </div>
 
-      {/* Submit Button */}
       <Button
         type="submit"
         className="w-full"

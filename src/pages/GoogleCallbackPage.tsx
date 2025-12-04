@@ -19,14 +19,12 @@ export const GoogleCallbackPage: React.FC = () => {
 
       console.log('GoogleCallback - Processing callback:', { code: !!code, state, error });
 
-      // Handle OAuth errors
       if (error) {
         toast.error(`Google authentication failed: ${error}`);
         navigate('/login', { replace: true });
         return;
       }
 
-      // Handle missing authorization code
       if (!code) {
         toast.error('No authorization code received from Google');
         navigate('/login', { replace: true });
@@ -35,11 +33,9 @@ export const GoogleCallbackPage: React.FC = () => {
 
       try {
         console.log('GoogleCallback - Calling handleGoogleCallback');
-        // Process the Google OAuth callback
         await handleGoogleCallback(code, state || undefined);
         console.log('GoogleCallback - handleGoogleCallback successful');
         
-        // Add a small delay to ensure auth state is fully updated
         await new Promise(resolve => setTimeout(resolve, 200));
         
         toast.success('Google sign-in successful!');

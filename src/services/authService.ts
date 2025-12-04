@@ -16,10 +16,6 @@ class AuthService {
     return apiClient.post<AuthResponse>('/auth/register', credentials, { skipAuth: true });
   }
 
-  /**
-   * Get Google OAuth authorization URL
-   * Redirects user to Google for authentication
-   */
   getGoogleAuthUrl(state?: string): string {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     const url = new URL(`${baseURL}/auth/google/authorize`);
@@ -30,16 +26,12 @@ class AuthService {
     return url.toString();
   }
 
-  /**
-   * Handle Google OAuth callback
-   * This would be called from the callback page with the authorization code
-   */
   async handleGoogleCallback(code: string, state?: string): Promise<AuthResponse> {
     console.log('AuthService - handleGoogleCallback called', { code: code.substring(0, 20) + '...', state });
     
     try {
       const response = await apiClient.post<AuthResponse>(
-        '/auth/google/callback', // Direct call without proxy
+        '/auth/google/callback',
         { code, state },
         { skipAuth: true }
       );
@@ -65,7 +57,6 @@ class AuthService {
 
   getUserFromToken(token: string, email?: string): User {
     try {
-      // Decode JWT token (simple decode without verification - verification happens on backend)
       const base64Url = token.split('.')[1];
       if (!base64Url) {
         throw new Error('Invalid token format');
@@ -81,10 +72,8 @@ class AuthService {
       
       const payload = JSON.parse(jsonPayload);
       
-      // Prioritize email parameter, then payload email fields
       const userEmail = email || payload.email || payload.sub || 'unknown@example.com';
       
-      // Determine provider based on email parameter or token payload
       const provider = email ? 'google' : (payload.provider as 'email' | 'google') || 'email';
       
       return {

@@ -14,9 +14,6 @@ class ApiClient {
     this.baseURL = baseURL;
   }
 
-  /**
-   * Main request method with automatic token injection and refresh
-   */
   async request<T>(
     endpoint: string,
     config: RequestConfig = {}
@@ -58,7 +55,6 @@ class ApiClient {
       console.log('API Response - Headers:', Object.fromEntries(response.headers.entries()));
       console.log('API Response - URL after redirects:', response.url);
 
-      // Handle 401 Unauthorized - Token expired
       if (response.status === 401 && !skipAuth && !isRetry) {
         const newAccessToken = await this.refreshAccessToken();
         
@@ -121,12 +117,7 @@ class ApiClient {
     }
   }
 
-  /**
-   * Refresh access token using refresh token
-   * Handles concurrent refresh requests (only one refresh at a time)
-   */
   private async refreshAccessToken(): Promise<string | null> {
-    // If a refresh is already in progress, wait for it
     if (this.refreshPromise) {
       return this.refreshPromise;
     }
@@ -136,7 +127,6 @@ class ApiClient {
       return null;
     }
 
-    // Create a new refresh promise
     this.refreshPromise = (async () => {
       try {
         const response = await fetch(`${this.baseURL}/auth/refresh`, {
@@ -157,7 +147,6 @@ class ApiClient {
         console.error('Token refresh error:', error);
         return null;
       } finally {
-        // Clear the refresh promise
         this.refreshPromise = null;
       }
     })();
@@ -165,9 +154,6 @@ class ApiClient {
     return this.refreshPromise;
   }
 
-  /**
-   * Handle authentication failure by clearing tokens and redirecting
-   */
   private handleAuthFailure(): void {
     cookieManager.clearAllTokens();
     
@@ -178,7 +164,6 @@ class ApiClient {
     }
   }
 
-  // Convenience methods
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     return this.request<T>(endpoint, { ...config, method: 'GET' });
   }

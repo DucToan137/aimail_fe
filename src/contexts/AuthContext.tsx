@@ -31,10 +31,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  /**
-   * Initialize auth state on mount
-   * Check if user has a valid refresh token and try to restore session
-   */
   useEffect(() => {
     const initializeAuth = async () => {
       try {

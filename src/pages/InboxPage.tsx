@@ -40,13 +40,11 @@ export function InboxPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailDetail, setShowEmailDetail] = useState(false);
   
-  // Loading and pagination states
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(false);
 
-  // Load mailboxes on mount
   useEffect(() => {
     loadMailboxes();
   }, []);
@@ -62,7 +60,6 @@ export function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlMailboxId, urlEmailId]);
 
-  // Load emails when mailbox changes
   useEffect(() => {
     loadEmails(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +72,6 @@ export function InboxPage() {
     const worker = async () => {
       while (true) {
         let current: Email | undefined;
-        // get next
         if (index < emailsToPrefetch.length) {
           current = emailsToPrefetch[index++];
         } else {
@@ -139,8 +135,6 @@ export function InboxPage() {
         setEmails(prev => [...prev, ...response.emails]);
       }
 
-      // Start background prefetch of details (limited concurrency). Do not block UI.
-      // We pass the mailbox id so we avoid merging results if user navigates away.
       prefetchEmailDetails(response.emails, selectedMailboxId).catch(err => console.error('Background prefetch error', err));
       
       setNextPageToken(response.nextPageToken);
@@ -181,7 +175,6 @@ export function InboxPage() {
     setShowEmailDetail(true);
     navigate(`/mailbox/${selectedMailboxId}/${emailId}`);
 
-    // If we don't have full detail yet, fetch it immediately so detail pane can show.
     const email = emails.find(e => e.id === emailId);
     if (email && !email.messages) {
       (async () => {
@@ -196,7 +189,6 @@ export function InboxPage() {
       })();
     }
 
-    // Mark as read when opened (works with threadId even if detail not present)
     if (email && !email.isRead) {
       handleToggleRead([emailId]);
     }
@@ -580,7 +572,6 @@ export function InboxPage() {
         </div>
       </div>
 
-      {/* Compose Email Modal */}
       <ComposeEmailModal
         isOpen={isComposeOpen}
         onClose={() => {

@@ -1,13 +1,8 @@
-/**
- * Cookie Manager
- */
-
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
-// Default expiry time (in days)
-const ACCESS_TOKEN_EXPIRY_DAYS = 1; // 1 day
-const REFRESH_TOKEN_EXPIRY_DAYS = 30; // 30 days
+const ACCESS_TOKEN_EXPIRY_DAYS = 1;
+const REFRESH_TOKEN_EXPIRY_DAYS = 30;
 
 interface CookieOptions {
   expires?: number; 
@@ -66,12 +61,11 @@ export const cookieManager = {
     try {
       setCookie(ACCESS_TOKEN_KEY, token, {
         expires: ACCESS_TOKEN_EXPIRY_DAYS,
-        secure: false, // Set to false for localhost development
+        secure: false,
         sameSite: 'Lax',
       });
       console.log('Access token set successfully:', `${token.substring(0, 20)}...`);
       
-      // Verify token was set
       const verifyToken = this.getAccessToken();
       if (!verifyToken) {
         console.error('Failed to set access token - token not found after setting');
@@ -87,7 +81,6 @@ export const cookieManager = {
     const token = getCookie(ACCESS_TOKEN_KEY);
     console.log('Getting access token:', token ? `${token.substring(0, 20)}...` : 'null');
     
-    // Debug: Decode JWT payload to see what's inside
     if (token) {
       try {
         const parts = token.split('.');
@@ -114,12 +107,11 @@ export const cookieManager = {
     try {
       setCookie(REFRESH_TOKEN_KEY, token, {
         expires: REFRESH_TOKEN_EXPIRY_DAYS,
-        secure: false, // Set to false for localhost development
+        secure: false,
         sameSite: 'Lax',
       });
       console.log('Refresh token set successfully:', `${token.substring(0, 20)}...`);
       
-      // Verify token was set
       const verifyToken = this.getRefreshToken();
       if (!verifyToken) {
         console.error('Failed to set refresh token - token not found after setting');

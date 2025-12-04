@@ -76,12 +76,10 @@ function parseEmailAddresses(emailsStr: string): Array<{ name: string; email: st
 export const emailService = {
   async getMailboxes(): Promise<Mailbox[]> {
     try {
-      // Fetch all labels from API
       const labels = await apiClient.get<LabelResponse[]>('/mailboxes');
       
       const mailboxes: Mailbox[] = [];
       
-      // First, add main labels in specific order
       MAIN_LABEL_IDS.forEach(labelId => {
         const label = labels.find(l => l.id === labelId);
         if (label) {
@@ -152,8 +150,6 @@ export const emailService = {
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
 
-      // Build lightweight preview emails from thread summaries.
-      // We avoid fetching full thread details here to reduce initial load.
       const emails: Email[] = (response.threads || []).map((thread) => ({
         id: thread.id,
         threadId: thread.id,
@@ -164,7 +160,7 @@ export const emailService = {
         body: '',
         htmlBody: undefined,
         timestamp: new Date().toISOString(),
-        isRead: true, // default; will be updated when detail is fetched
+        isRead: true,
         isStarred: false,
         hasAttachments: false,
         attachments: [],
