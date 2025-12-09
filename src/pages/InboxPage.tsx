@@ -8,6 +8,7 @@ import { MailboxList } from '@/components/dashboard/MailboxList';
 import { EmailList } from '@/components/dashboard/EmailList';
 import { EmailDetail } from '@/components/dashboard/EmailDetail';
 import { ComposeEmailModal } from '@/components/dashboard/ComposeEmailModal';
+import { KanbanBoard } from '@/components/dashboard/KanbanBoard';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -19,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, ArrowLeft, LogOut } from 'lucide-react';
+import { Menu, ArrowLeft, LogOut, LayoutGrid, List } from 'lucide-react';
 
 export function InboxPage() {
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ export function InboxPage() {
   }>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailDetail, setShowEmailDetail] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
@@ -431,6 +433,46 @@ export function InboxPage() {
     }
   };
 
+  const handleEmailMove = async (emailId: string, targetMailboxId: string) => {
+    const email = emails.find(e => e.id === emailId);
+    if (!email) return;
+
+    try {
+      // Get current labels by finding the source mailbox
+      const sourceMailbox = mailboxes.find(m => m.id === email.mailboxId || m.id === selectedMailboxId);
+      const removeLabelIds: string[] = sourceMailbox ? [sourceMailbox.id] : [];
+      
+      await emailService.modifyLabels({
+        threadId: email.threadId,
+        addLabelIds: [targetMailboxId],
+        removeLabelIds: removeLabelIds,
+      });
+      
+      // Update local state
+      setEmails(prev => prev.map(e => 
+        e.id === emailId ? { ...e, mailboxId: targetMailboxId } : e
+      ));
+      
+      toast.success('Email moved successfully');
+    } catch (error) {
+      console.error('Failed to move email:', error);
+      toast.error('Failed to move email');
+      throw error;
+    }
+  };
+
+  const handleCreateLabel = async (labelName: string) => {
+    try {
+      await emailService.createLabel(labelName);
+      toast.success(`Label "${labelName}" created successfully`);
+      await loadMailboxes();
+    } catch (error) {
+      console.error('Failed to create label:', error);
+      toast.error('Failed to create label');
+      throw error;
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -492,6 +534,19 @@ export function InboxPage() {
             <h1 className="text-lg font-semibold flex-1">
               {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
             </h1>
+            {/* View Mode Toggle - Mobile */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setViewMode(viewMode === 'list' ? 'kanban' : 'list')}
+              className="h-8 w-8 p-0"
+            >
+              {viewMode === 'list' ? (
+                <LayoutGrid className="h-4 w-4" />
+              ) : (
+                <List className="h-4 w-4" />
+              )}
+            </Button>
             {/* User Menu - Mobile */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -535,41 +590,105 @@ export function InboxPage() {
           />
         </div>
 
-        {/* Column 2: Email List (Hidden on mobile when detail is shown) */}
-        <div className={`${showEmailDetail ? 'hidden lg:block' : 'flex-1 min-w-0'} lg:flex-1 lg:min-w-0`}>
-          <EmailList
-            emails={emails}
-            selectedEmailId={selectedEmailId}
-            mailboxId={selectedMailboxId}
-            onSelectEmail={handleSelectEmail}
-            onToggleStar={handleToggleStar}
-            onRefresh={() => loadEmails(true)}
-            onCompose={() => setIsComposeOpen(true)}
-            onDelete={handleDelete}
-            onPermanentDelete={handlePermanentDelete}
-            onMoveToInbox={handleMoveToInbox}
-            onToggleRead={handleToggleRead}
-            isLoading={isLoadingEmails}
-            hasMore={hasMore}
-            onLoadMore={handleLoadMore}
-          />
-        </div>
+        {/* Kanban View (Full width when active) */}
+        {viewMode === 'kanban' ? (
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* View Toggle Bar */}
+            <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
+              <h2 className="text-lg font-semibold">
+                {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="gap-2"
+              >
+                <List className="h-4 w-4" />
+                List View
+              </Button>
+            </div>
+            {/* Mobile view for Kanban - show full screen */}
+            <div className="flex-1 min-h-0 lg:hidden">
+              <KanbanBoard
+                mailboxes={mailboxes}
+                emails={emails}
+                selectedEmailId={selectedEmailId}
+                onEmailSelect={handleSelectEmail}
+                onEmailMove={handleEmailMove}
+                onCreateLabel={handleCreateLabel}
+                onRefresh={() => loadEmails(true)}
+              />
+            </div>
+            {/* Desktop view for Kanban */}
+            <div className="hidden lg:block flex-1 min-h-0">
+              <KanbanBoard
+                mailboxes={mailboxes}
+                emails={emails}
+                selectedEmailId={selectedEmailId}
+                onEmailSelect={handleSelectEmail}
+                onEmailMove={handleEmailMove}
+                onCreateLabel={handleCreateLabel}
+                onRefresh={() => loadEmails(true)}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Column 2: Email List (Hidden on mobile when detail is shown) */}
+            <div className={`${showEmailDetail ? 'hidden lg:block' : 'flex-1 min-w-0'} lg:flex-1 lg:min-w-0 flex flex-col`}>
+              {/* View Toggle Bar - Desktop */}
+              <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
+                <h2 className="text-lg font-semibold">
+                  {mailboxes.find(m => m.id === selectedMailboxId)?.name || 'Inbox'}
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode('kanban')}
+                  className="gap-2"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Kanban View
+                </Button>
+              </div>
+              <div className="flex-1 min-h-0">
+                <EmailList
+                  emails={emails}
+                  selectedEmailId={selectedEmailId}
+                  mailboxId={selectedMailboxId}
+                  onSelectEmail={handleSelectEmail}
+                  onToggleStar={handleToggleStar}
+                  onRefresh={() => loadEmails(true)}
+                  onCompose={() => setIsComposeOpen(true)}
+                  onDelete={handleDelete}
+                  onPermanentDelete={handlePermanentDelete}
+                  onMoveToInbox={handleMoveToInbox}
+                  onToggleRead={handleToggleRead}
+                  isLoading={isLoadingEmails}
+                  hasMore={hasMore}
+                  onLoadMore={handleLoadMore}
+                />
+              </div>
+            </div>
 
-        {/* Column 3: Email Detail (Mobile: full screen when shown, Desktop: always visible) */}
-        <div className={`${showEmailDetail ? 'flex-1' : 'hidden lg:block lg:flex-1 lg:min-w-0'}`}>
-          <EmailDetail
-            email={selectedEmail}
-            mailboxId={selectedMailboxId}
-            onReply={handleReply}
-            onReplyAll={handleReplyAll}
-            onForward={handleForward}
-            onDelete={() => selectedEmailId && handleDelete([selectedEmailId])}
-            onPermanentDelete={() => selectedEmailId && handlePermanentDelete([selectedEmailId])}
-            onMoveToInbox={() => selectedEmailId && handleMoveToInbox([selectedEmailId])}
-            onToggleRead={() => selectedEmailId && handleToggleRead([selectedEmailId])}
-            onToggleStar={() => selectedEmailId && handleToggleStar(selectedEmailId)}
-          />
-        </div>
+            {/* Column 3: Email Detail (Mobile: full screen when shown, Desktop: always visible) */}
+            <div className={`${showEmailDetail ? 'flex-1' : 'hidden lg:block lg:flex-1 lg:min-w-0'}`}>
+              <EmailDetail
+                email={selectedEmail}
+                mailboxId={selectedMailboxId}
+                onReply={handleReply}
+                onReplyAll={handleReplyAll}
+                onForward={handleForward}
+                onDelete={() => selectedEmailId && handleDelete([selectedEmailId])}
+                onPermanentDelete={() => selectedEmailId && handlePermanentDelete([selectedEmailId])}
+                onMoveToInbox={() => selectedEmailId && handleMoveToInbox([selectedEmailId])}
+                onToggleRead={() => selectedEmailId && handleToggleRead([selectedEmailId])}
+                onToggleStar={() => selectedEmailId && handleToggleStar(selectedEmailId)}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <ComposeEmailModal

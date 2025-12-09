@@ -403,4 +403,13 @@ export const emailService = {
       inReplyToMessageId: messageId,
     });
   },
+
+  async createLabel(name: string): Promise<LabelResponse> {
+    try {
+      return await apiClient.post<LabelResponse>('/mailboxes', { name });
+    } catch (error) {
+      console.error('Failed to create label:', error);
+      throw error;
+    }
+  },
 };
