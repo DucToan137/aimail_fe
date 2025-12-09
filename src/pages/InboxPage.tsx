@@ -136,6 +136,8 @@ export function InboxPage() {
         pageToken
       );
       
+      console.log(`Loaded emails for ${selectedMailboxId}:`, response.emails);
+      
       if (reset) {
         setEmails(response.emails);
       } else {

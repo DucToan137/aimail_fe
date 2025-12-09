@@ -41,8 +41,6 @@ export function KanbanBoard({
       .filter(m => m.type === 'custom' && !['INBOX', 'TODO', 'DONE'].includes(m.id))
       .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
     
-      console.log('Custom Labels:', customLabels);
-      console.log('Mailboxes:', mailboxes);
     setColumns([...DEFAULT_COLUMNS, ...customLabels]);
   }, [mailboxes]);
 
@@ -67,10 +65,36 @@ export function KanbanBoard({
       const pageToken = reset ? undefined : columnPages[columnId]?.pageToken;
       const response = await emailService.getEmailsByMailbox(columnId, 5, pageToken);
       
+      // Hiển thị thông tin thread cơ bản ngay lập tức
       setColumnEmails(prev => ({
         ...prev,
         [columnId]: reset ? response.emails : [...(prev[columnId] || []), ...response.emails]
       }));
+
+      // Fetch chi tiết từng email và update progressively
+      response.emails.forEach(async (email) => {
+        try {
+          const fullEmail = await emailService.getEmailById(email.threadId);
+          if (fullEmail) {
+            setColumnEmails(prev => {
+              const currentEmails = prev[columnId] || [];
+              const emailIndex = currentEmails.findIndex(e => e.threadId === email.threadId);
+              if (emailIndex !== -1) {
+                // Update existing email with full details
+                const updated = [...currentEmails];
+                updated[emailIndex] = fullEmail;
+                return {
+                  ...prev,
+                  [columnId]: updated
+                };
+              }
+              return prev;
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to fetch email detail for thread ${email.threadId}:`, error);
+        }
+      });
 
       setColumnPages(prev => ({
         ...prev,
