@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, X } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import type { EmailSummaryResponse } from '@/types/email';
 import { emailService } from '@/services/emailService';
 import { toast } from 'sonner';
