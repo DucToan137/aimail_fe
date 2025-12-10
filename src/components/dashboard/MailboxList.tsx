@@ -21,6 +21,7 @@ import {
   Bell,
   MessageSquare,
   Clock,
+  X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -33,11 +34,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MailboxListProps {
   mailboxes: Mailbox[];
   selectedMailboxId: string;
   onSelectMailbox: (mailboxId: string) => void;
+  onDeleteLabel?: (labelId: string, labelName: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -57,10 +69,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   MessageSquare,
 };
 
-export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox, isLoading = false }: MailboxListProps) {
+export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox, onDeleteLabel, isLoading = false }: MailboxListProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showMore, setShowMore] = useState(false);
+  const [labelToDelete, setLabelToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const mainMailboxes = mailboxes.filter(m => m.isMain);
   const secondaryMailboxes = mailboxes.filter(m => !m.isMain);
@@ -83,6 +97,20 @@ export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox, isL
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleDeleteLabel = async () => {
+    if (!labelToDelete || !onDeleteLabel) return;
+
+    setIsDeleting(true);
+    try {
+      await onDeleteLabel(labelToDelete.id, labelToDelete.name);
+      setLabelToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete label:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -152,35 +180,51 @@ export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox, isL
               {showMore && secondaryMailboxes.map((mailbox) => {
                 const Icon = iconMap[mailbox.icon] || Mail;
                 const isSelected = mailbox.id === selectedMailboxId;
+                const isUserLabel = mailbox.type === 'user';
                 
                 return (
                   <li key={mailbox.id}>
-                    <button
-                      onClick={() => onSelectMailbox(mailbox.id)}
-                      className={cn(
-                        'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
-                        isSelected
-                          ? 'bg-blue-100 text-blue-900 font-medium'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      )}
-                      aria-label={`${mailbox.name} mailbox${mailbox.unreadCount ? `, ${mailbox.unreadCount} unread` : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-4 w-4" />
-                        <span>{mailbox.name}</span>
-                      </div>
-                      {mailbox.unreadCount ? (
-                        <Badge 
-                          variant="secondary" 
-                          className={cn(
-                            'ml-auto',
-                            isSelected ? 'bg-blue-200 text-blue-900' : ''
-                          )}
+                    <div className="relative group">
+                      <button
+                        onClick={() => onSelectMailbox(mailbox.id)}
+                        className={cn(
+                          'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+                          isSelected
+                            ? 'bg-blue-100 text-blue-900 font-medium'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        )}
+                        aria-label={`${mailbox.name} mailbox${mailbox.unreadCount ? `, ${mailbox.unreadCount} unread` : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-4 w-4" />
+                          <span>{mailbox.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {mailbox.unreadCount ? (
+                            <Badge 
+                              variant="secondary" 
+                              className={cn(
+                                isSelected ? 'bg-blue-200 text-blue-900' : ''
+                              )}
+                            >
+                              {mailbox.unreadCount}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </button>
+                      {isUserLabel && onDeleteLabel && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLabelToDelete({ id: mailbox.id, name: mailbox.name });
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                          title="Delete label"
                         >
-                          {mailbox.unreadCount}
-                        </Badge>
-                      ) : null}
-                    </button>
+                          <X className="h-3 w-3 text-red-600" />
+                        </button>
+                      )}
+                    </div>
                   </li>
                 );
               })}
@@ -225,6 +269,28 @@ export function MailboxList({ mailboxes, selectedMailboxId, onSelectMailbox, isL
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Delete Label Confirmation Dialog */}
+      <AlertDialog open={!!labelToDelete} onOpenChange={(open) => !open && setLabelToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Label</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the label "{labelToDelete?.name}"? This will remove the label from all emails and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteLabel}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

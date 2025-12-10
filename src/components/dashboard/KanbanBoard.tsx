@@ -54,51 +54,60 @@ export function KanbanBoard({
   const [isSnoozeModalOpen, setIsSnoozeModalOpen] = useState(false);
   const [emailToSnooze, setEmailToSnooze] = useState<{ id: string; subject: string; sourceColumn: string } | null>(null);
   
-  const [selectedColumnIds, setSelectedColumnIds] = useState<Set<string>>(() => {
+  const [selectedColumnIds, setSelectedColumnIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('kanban-selected-columns');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return new Set(parsed);
+        return Array.isArray(parsed) ? parsed : ['INBOX'];
       }
     } catch (error) {
       console.error('Failed to load kanban columns from localStorage:', error);
     }
-    return new Set(['INBOX']);
+    return ['INBOX'];
   });
 
   useEffect(() => {
-    const selectedColumns = mailboxes
-      .filter(m => selectedColumnIds.has(m.id))
-      .map(m => ({ id: m.id, name: m.name, icon: m.icon }));
+    const selectedColumns = selectedColumnIds
+      .map(id => {
+        const mailbox = mailboxes.find(m => m.id === id);
+        return mailbox ? { id: mailbox.id, name: mailbox.name, icon: mailbox.icon } : null;
+      })
+      .filter((col): col is KanbanColumn => col !== null);
     
     setColumns(selectedColumns);
   }, [mailboxes, selectedColumnIds]);
 
   useEffect(() => {
     if (onColumnsChange) {
-      onColumnsChange(Array.from(selectedColumnIds));
+      onColumnsChange(selectedColumnIds);
     }
   }, [selectedColumnIds, onColumnsChange]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('kanban-selected-columns', JSON.stringify(Array.from(selectedColumnIds)));
+      localStorage.setItem('kanban-selected-columns', JSON.stringify(selectedColumnIds));
     } catch (error) {
       console.error('Failed to save kanban columns to localStorage:', error);
     }
   }, [selectedColumnIds]);
 
-  const addColumn = (columnId: string) => {
-    setSelectedColumnIds(prev => new Set([...prev, columnId]));
+  const addColumn = (columnId: string): boolean => {
+    if (selectedColumnIds.includes(columnId)) {
+      return false; 
+    }
+    
+    setSelectedColumnIds(prev => [...prev, columnId]);
+    return true;
   };
 
   useEffect(() => {
-    (window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn = addColumn;
+    (window as typeof window & { __kanbanAddColumn?: (id: string) => boolean }).__kanbanAddColumn = addColumn;
     return () => {
-      delete (window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn;
+      delete (window as typeof window & { __kanbanAddColumn?: (id: string) => boolean }).__kanbanAddColumn;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedColumnIds]);
 
   // Load emails for each column
   useEffect(() => {
@@ -288,9 +297,8 @@ export function KanbanBoard({
       }
       
       setSelectedColumnIds(prev => {
-        const updated = new Set(prev);
-        updated.delete(columnToDelete.id);
-        return updated;
+        // Remove the deleted column from array
+        return prev.filter(id => id !== columnToDelete.id);
       });
       
       // Remove column from state

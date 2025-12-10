@@ -45,6 +45,8 @@ export function InboxPage() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const [selectedLabelForColumn, setSelectedLabelForColumn] = useState('');
+  const [isCreatingNewLabel, setIsCreatingNewLabel] = useState(false);
+  const [newLabelName, setNewLabelName] = useState('');
   
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
@@ -611,16 +613,87 @@ export function InboxPage() {
     }
   };
 
-  const handleAddColumn = () => {
-    if (!selectedLabelForColumn) return;
-    
-    if ((window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn) {
-      (window as typeof window & { __kanbanAddColumn?: (id: string) => void }).__kanbanAddColumn!(selectedLabelForColumn);
+  const handleAddColumn = async () => {
+    try {
+      let labelId = selectedLabelForColumn;
+      
+      if (isCreatingNewLabel) {
+        if (!newLabelName.trim()) {
+          toast.error('Please enter a label name');
+          return;
+        }
+        
+        const existingLabel = mailboxes.find(
+          m => m.name.toLowerCase() === newLabelName.trim().toLowerCase()
+        );
+        
+        if (existingLabel) {
+          toast.error(`Label "${newLabelName}" already exists`);
+          return;
+        }
+        
+        const newLabel = await emailService.createLabel(newLabelName.trim());
+        labelId = newLabel.id;
+        
+        await loadMailboxes();
+        
+        toast.success(`Label "${newLabelName}" created successfully`);
+      } else {
+        if (!labelId) {
+          toast.error('Please select a label');
+          return;
+        }
+      }
+      
+      // Add column to Kanban board
+      if ((window as typeof window & { __kanbanAddColumn?: (id: string) => boolean }).__kanbanAddColumn) {
+        const addResult = (window as typeof window & { __kanbanAddColumn?: (id: string) => boolean }).__kanbanAddColumn!(labelId);
+        
+        if (addResult === false) {
+          const labelName = mailboxes.find(m => m.id === labelId)?.name || 'This label';
+          toast.info(`${labelName} is already in the Kanban board`);
+          setSelectedLabelForColumn('');
+          setNewLabelName('');
+          setIsCreatingNewLabel(false);
+          setIsAddColumnDialogOpen(false);
+          return;
+        }
+      }
+      
+      setSelectedLabelForColumn('');
+      setNewLabelName('');
+      setIsCreatingNewLabel(false);
+      setIsAddColumnDialogOpen(false);
+      
+      toast.success('Column added to Kanban board');
+    } catch (error) {
+      console.error('Failed to add column:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add column';
+      toast.error(errorMessage);
     }
-    
-    setSelectedLabelForColumn('');
-    setIsAddColumnDialogOpen(false);
-    toast.success('Column added to Kanban board');
+  };
+
+  const handleDeleteLabel = async (labelId: string, labelName: string) => {
+    try {
+      const loadingToast = toast.loading(`Moving emails to Inbox and deleting label "${labelName}"...`);
+      
+      await emailService.deleteLabel(labelId);
+      
+      toast.dismiss(loadingToast);
+      toast.success(`Label "${labelName}" deleted. All emails moved to Inbox.`);
+      
+      await loadMailboxes();
+      
+      if (selectedMailboxId === labelId) {
+        setSelectedMailboxId('INBOX');
+        navigate('/mailbox/INBOX');
+        await loadEmails(true);
+      }
+    } catch (error) {
+      console.error('Failed to delete label:', error);
+      toast.error(`Failed to delete label "${labelName}"`);
+      throw error;
+    }
   };
 
   const handleLogout = async () => {
@@ -737,6 +810,7 @@ export function InboxPage() {
               mailboxes={mailboxes}
               selectedMailboxId={selectedMailboxId}
               onSelectMailbox={handleSelectMailbox}
+              onDeleteLabel={handleDeleteLabel}
               isLoading={isLoadingMailboxes}
             />
           </div>
@@ -761,48 +835,99 @@ export function InboxPage() {
                       <DialogTitle>Add Column to Kanban Board</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="label-select" className="text-sm font-medium">
-                          Select a label to add as column
-                        </Label>
-                        <select
-                          id="label-select"
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          value={selectedLabelForColumn}
-                          onChange={(e) => setSelectedLabelForColumn(e.target.value)}
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={!isCreatingNewLabel ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setIsCreatingNewLabel(false);
+                            setNewLabelName('');
+                          }}
+                          className="flex-1"
                         >
-                          <option value="">Choose a column...</option>
-                          {[
-                            { id: 'TO_DO', name: 'To Do' },
-                            { id: 'IN_PROGRESS', name: 'In Progress' },
-                            { id: 'DONE', name: 'Done' },
-                            { id: 'SNOOZED', name: 'Snoozed' },
-                          ].map(column => (
-                            <option key={column.id} value={column.id}>
-                              {column.name}
-                            </option>
-                          ))
-                          }
-                        </select>
-                        <p className="text-xs text-muted-foreground">
-                          Available workflow columns. INBOX is the default column.
-                        </p>
+                          Existing Label
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={isCreatingNewLabel ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setIsCreatingNewLabel(true);
+                            setSelectedLabelForColumn('');
+                          }}
+                          className="flex-1"
+                        >
+                          Create New
+                        </Button>
                       </div>
+
+                      {!isCreatingNewLabel ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="label-select" className="text-sm font-medium">
+                            Select a label to add as column
+                          </Label>
+                          <select
+                            id="label-select"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={selectedLabelForColumn}
+                            onChange={(e) => setSelectedLabelForColumn(e.target.value)}
+                          >
+                            <option value="">Choose a label...</option>
+                            {mailboxes
+                              .filter(m => !['INBOX'].includes(m.id)) 
+                              .map(mailbox => (
+                                <option key={mailbox.id} value={mailbox.id}>
+                                  {mailbox.name}
+                                </option>
+                              ))
+                            }
+                          </select>
+                          <p className="text-xs text-muted-foreground">
+                            Select an existing label to add as a column
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="new-label-name" className="text-sm font-medium">
+                            New label name
+                          </Label>
+                          <input
+                            id="new-label-name"
+                            type="text"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Enter label name..."
+                            value={newLabelName}
+                            onChange={(e) => setNewLabelName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newLabelName.trim()) {
+                                handleAddColumn();
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Create a new label and add it as a column
+                          </p>
+                        </div>
+                      )}
+
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
                           onClick={() => {
                             setIsAddColumnDialogOpen(false);
                             setSelectedLabelForColumn('');
+                            setNewLabelName('');
+                            setIsCreatingNewLabel(false);
                           }}
                         >
                           Cancel
                         </Button>
                         <Button
                           onClick={handleAddColumn}
-                          disabled={!selectedLabelForColumn}
+                          disabled={!isCreatingNewLabel ? !selectedLabelForColumn : !newLabelName.trim()}
                         >
-                          Add Column
+                          {isCreatingNewLabel ? 'Create & Add' : 'Add Column'}
                         </Button>
                       </div>
                     </div>

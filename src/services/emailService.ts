@@ -540,6 +540,25 @@ export const emailService = {
 
   async deleteLabel(labelId: string): Promise<void> {
     try {
+      try {
+        const response = await this.getEmailsByMailbox(labelId, 100);
+        const threadIds = response.emails.map(e => e.threadId).filter(Boolean);
+        
+        if (threadIds.length > 0) {
+          await Promise.all(
+            threadIds.map(threadId =>
+              this.modifyLabels({
+                threadId,
+                addLabelIds: ['INBOX'],
+                removeLabelIds: [labelId],
+              })
+            )
+          );
+        }
+      } catch (error) {
+        console.warn('Failed to move emails to INBOX before deleting label:', error);
+      }
+      
       await apiClient.delete(`/mailboxes/${labelId}`);
     } catch (error) {
       console.error('Failed to delete label:', error);
