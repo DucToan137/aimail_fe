@@ -2,8 +2,9 @@ import type { Email } from '@/types/email';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Paperclip, Star } from 'lucide-react';
+import { Paperclip, Star, Sparkles } from 'lucide-react';
 
 interface KanbanCardProps {
   email: Email;
@@ -56,6 +57,12 @@ export function KanbanCard({
       .slice(0, 2);
   };
 
+  const handleAISummary = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card selection when clicking AI Summary button
+    // TODO: Implement AI summary logic
+    console.log('AI Summary clicked for email:', email.subject);
+  };
+
   return (
     <Card
       draggable
@@ -72,7 +79,7 @@ export function KanbanCard({
         !email.isRead && 'bg-accent/50'
       )}
     >
-      <CardContent className="p-3 space-y-2">
+      <CardContent className="px-3  space-y-2">
         {/* Sender */}
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
@@ -108,6 +115,17 @@ export function KanbanCard({
         <p className="text-xs text-muted-foreground line-clamp-2">
           {email.preview}
         </p>
+
+        {/* AI Summary Button */}
+        <Button
+          onClick={handleAISummary}
+          variant="outline"
+          size="sm"
+          className="w-full gap-1.5   from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 text-purple-700 hover:text-purple-800"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span className="text-xs font-medium">AI Summary</span>
+        </Button>
 
         {/* Metadata */}
         <div className="flex items-center gap-2 pt-1">
