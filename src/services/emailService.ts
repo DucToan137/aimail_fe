@@ -15,6 +15,7 @@ import type {
   UpdateEmailStatusRequest,
   EmailWorkflowResponse,
   EmailStatus,
+  EmailSummaryResponse,
 } from '../types/email';
 import { toast } from 'sonner';
 
@@ -742,6 +743,21 @@ export const emailService = {
       await apiClient.patch(`/api/emails/${emailId}/starred`, { isStarred });
     } catch (error) {
       console.error('Failed to update starred status:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get AI summary for an email message
+   */
+  async summarizeEmail(messageId: string): Promise<EmailSummaryResponse> {
+    try {
+      // URL encode the messageId to handle special characters like @, ., etc.
+      const encodedMessageId = encodeURIComponent(messageId);
+      const response = await apiClient.get<EmailSummaryResponse>(`/emails/${encodedMessageId}/summary`);
+      return response;
+    } catch (error) {
+      console.error('Failed to summarize email:', error);
       throw error;
     }
   },

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import type { Email } from '@/types/email';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { EmailSummaryModal } from './EmailSummaryModal';
 import { cn } from '@/lib/utils';
 import { Paperclip, Star, Sparkles } from 'lucide-react';
 
@@ -23,6 +25,8 @@ export function KanbanCard({
   onDragStart,
   onDragEnd,
 }: KanbanCardProps) {
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -59,8 +63,7 @@ export function KanbanCard({
 
   const handleAISummary = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card selection when clicking AI Summary button
-    // TODO: Implement AI summary logic
-    console.log('AI Summary clicked for email:', email.subject);
+    setShowSummaryModal(true);
   };
 
   return (
@@ -142,6 +145,14 @@ export function KanbanCard({
           )}
         </div>
       </CardContent>
+
+      {/* Email Summary Modal */}
+      <EmailSummaryModal
+        open={showSummaryModal}
+        onClose={() => setShowSummaryModal(false)}
+        messageId={email.messages?.[0]?.id || email.id}
+        emailSubject={email.subject}
+      />
     </Card>
   );
 }

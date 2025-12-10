@@ -183,3 +183,14 @@ export interface EmailWorkflowResponse {
   updatedAt: string;
 }
 
+export interface EmailSummaryResponse {
+  messageId: string;
+  subject: string;
+  from: string;
+  to: string;
+  date: string;
+  oneLineSubject: string;
+  bullets: string[];
+  summary: string;
+}
+

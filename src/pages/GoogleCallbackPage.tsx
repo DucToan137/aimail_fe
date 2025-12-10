@@ -9,7 +9,7 @@ import { getErrorMessage } from '../utils/errorHandler';
 export const GoogleCallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { handleGoogleCallback, isAuthenticated } = useAuth();
+  const { handleGoogleCallback } = useAuth();
 
   useEffect(() => {
     const processCallback = async () => {

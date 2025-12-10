@@ -4,21 +4,17 @@ import { toast } from 'sonner';
 import { useAuth } from '../hooks/useAuth';
 import { Card } from '../components/ui/card';
 import { Loader2, Mail } from 'lucide-react';
-import { cookieManager } from '../utils/tokenManager';
-import { authService } from '../services/authService';
 
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuthState } = useAuth();
-  const [isProcessing, setIsProcessing] = React.useState(false);
   const [isProcessed, setIsProcessed] = React.useState(false);
 
   useEffect(() => {
     if (isProcessed) return;
     
     const processCallback = async () => {
-      setIsProcessing(true);
       
       const accessToken = searchParams.get('accessToken');
       const refreshToken = searchParams.get('refreshToken');
@@ -57,7 +53,7 @@ export const AuthCallbackPage: React.FC = () => {
         toast.error('Failed to complete authentication');
         navigate('/login', { replace: true });
       } finally {
-        setIsProcessing(false);
+        setIsProcessed(true);
       }
     };
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Email } from '@/types/email';
-import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash, Clock } from 'lucide-react';
+import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit, Inbox, Trash, Clock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { EmailSummaryModal } from './EmailSummaryModal';
 
 interface EmailListProps {
   emails: Email[];
@@ -50,6 +51,8 @@ export function EmailList({
 }: EmailListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [summaryEmailId, setSummaryEmailId] = useState<string | null>(null);
+  const [summaryEmailSubject, setSummaryEmailSubject] = useState<string | undefined>();
 
   const handleSelectAll = () => {
     if (selectedIds.size === emails.length) {
@@ -309,6 +312,21 @@ export function EmailList({
                           )}>
                             {email.preview}
                           </div>
+                          
+                          {/* AI Summary Button */}
+                          <div className="mt-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSummaryEmailId(email.messages?.[0]?.id || email.id);
+                                setSummaryEmailSubject(email.subject);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded transition-colors"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              AI Summary
+                            </button>
+                          </div>
                         </>
                       )}
                     </div>
@@ -350,6 +368,17 @@ export function EmailList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email Summary Modal */}
+      <EmailSummaryModal
+        open={!!summaryEmailId}
+        onClose={() => {
+          setSummaryEmailId(null);
+          setSummaryEmailSubject(undefined);
+        }}
+        messageId={summaryEmailId || ''}
+        emailSubject={summaryEmailSubject}
+      />
     </div>
   );
 }
