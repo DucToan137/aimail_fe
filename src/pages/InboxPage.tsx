@@ -42,7 +42,15 @@ export function InboxPage() {
   }>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEmailDetail, setShowEmailDetail] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>(() => {
+    try {
+      const saved = localStorage.getItem('email-view-mode');
+      return (saved === 'kanban' || saved === 'list') ? saved : 'list';
+    } catch (error) {
+      console.error('Failed to load view mode from localStorage:', error);
+      return 'list';
+    }
+  });
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const [selectedLabelForColumn, setSelectedLabelForColumn] = useState('');
   const [isCreatingNewLabel, setIsCreatingNewLabel] = useState(false);
@@ -56,6 +64,14 @@ export function InboxPage() {
   useEffect(() => {
     loadMailboxes();
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('email-view-mode', viewMode);
+    } catch (error) {
+      console.error('Failed to save view mode to localStorage:', error);
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     if (urlMailboxId && urlMailboxId !== selectedMailboxId) {
@@ -193,36 +209,53 @@ export function InboxPage() {
     navigate(`/mailbox/${mailboxId}`);
   };
 
-  const handleSelectEmail = (emailId: string) => {
+  const handleSelectEmail = async (emailId: string, mailboxId?: string) => {
+    if (mailboxId && mailboxId !== selectedMailboxId) {
+      setSelectedMailboxId(mailboxId);
+      setIsLoadingEmails(true);
+      navigate(`/mailbox/${mailboxId}/${emailId}`);
+
+      try {
+        const response = await emailService.getEmailsByMailbox(mailboxId, 50);
+        setEmails(response.emails);
+        setNextPageToken(response.nextPageToken);
+        setHasMore(!!response.nextPageToken);
+      } catch (error) {
+        console.error('Failed to load emails for mailbox on selection:', error);
+        toast.error('Failed to load mailbox for selected email');
+      } finally {
+        setIsLoadingEmails(false);
+      }
+    } else {
+      navigate(`/mailbox/${selectedMailboxId}/${emailId}`);
+    }
+
     setSelectedEmailId(emailId);
     setShowEmailDetail(true);
-    navigate(`/mailbox/${selectedMailboxId}/${emailId}`);
 
     const email = emails.find(e => e.id === emailId);
     if (email && !email.messages) {
-      (async () => {
-        try {
-          console.log('Fetching email detail on select:', { id: email.id, threadId: email.threadId, workflowEmailId: email.workflowEmailId });
-          const detail = await emailService.getEmailById(email.threadId);
-          if (detail) {
-            setEmails(prev => prev.map(e => {
-              if (e.id === detail.id) {
-                return { 
-                  ...detail, 
-                  preview: e.preview || detail.preview,
-                  isRead: e.workflowEmailId !== undefined ? e.isRead : detail.isRead,
-                  isStarred: e.workflowEmailId !== undefined ? e.isStarred : detail.isStarred,
-                  workflowEmailId: e.workflowEmailId, 
-                  snoozedUntil: e.snoozedUntil, 
-                };
-              }
-              return e;
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to fetch email detail on select:', error);
+      try {
+        console.log('Fetching email detail on select:', { id: email.id, threadId: email.threadId, workflowEmailId: email.workflowEmailId });
+        const detail = await emailService.getEmailById(email.threadId);
+        if (detail) {
+          setEmails(prev => prev.map(e => {
+            if (e.id === detail.id) {
+              return { 
+                ...detail, 
+                preview: e.preview || detail.preview,
+                isRead: e.workflowEmailId !== undefined ? e.isRead : detail.isRead,
+                isStarred: e.workflowEmailId !== undefined ? e.isStarred : detail.isStarred,
+                workflowEmailId: e.workflowEmailId, 
+                snoozedUntil: e.snoozedUntil, 
+              };
+            }
+            return e;
+          }));
         }
-      })();
+      } catch (error) {
+        console.error('Failed to fetch email detail on select:', error);
+      }
     }
 
     if (email && !email.isRead) {
@@ -410,28 +443,46 @@ export function InboxPage() {
     }
   };
 
-  const handleSnooze = async (emailId: string, snoozeDate: Date) => {
+  const handleSnooze = async (emailId: string, snoozeDate: Date, threadId?: string, sourceColumn?: string) => {
     try {
-           
-      const email = emails.find(e => e.id === emailId || e.threadId === emailId);
-      // console.log('Found email:', email);
-      
-      if (!email) {
-        console.error('Email not found for snooze');
-        toast.error('Could not find email to snooze');
-        return;
+      let targetThreadId = threadId;
+
+      if (!targetThreadId) {
+        const email = emails.find(e => e.id === emailId || e.threadId === emailId);
+        if (!email) {
+          console.error('Email not found for snooze');
+          toast.error('Could not find email to snooze');
+          return;
+        }
+        targetThreadId = email.threadId;
       }
 
-      await emailService.snoozeEmailByThreadId(email.threadId, snoozeDate);
-      
+      // Step 1: Get real SNOOZED label ID and modify labels (current → SNOOZED)
+      try {
+        const snoozedLabelId = await emailService.getSnoozedLabelId();
+        const removeLabels = sourceColumn ? [sourceColumn] : [];
+        
+        await emailService.modifyLabels({
+          threadId: targetThreadId!,
+          addLabelIds: [snoozedLabelId],
+          removeLabelIds: removeLabels,
+        });
+      } catch (modErr) {
+        console.warn('Failed to modify labels when snoozing:', modErr);
+      }
+
+      // Step 2: Save to workflow database
+      await emailService.snoozeEmailByThreadId(targetThreadId!, snoozeDate);
+
+      // Remove from current list if present
       setEmails(prev => prev.filter(e => e.id !== emailId));
-      
+
       if (selectedEmailId === emailId) {
         setSelectedEmailId(null);
         setShowEmailDetail(false);
         navigate(`/mailbox/${selectedMailboxId}`);
       }
-      
+
       toast.success(`Email snoozed until ${snoozeDate.toLocaleString('vi-VN', { 
         dateStyle: 'medium', 
         timeStyle: 'short' 
@@ -447,10 +498,25 @@ export function InboxPage() {
     // console.log('Current emails:', emails.map(e => ({ id: e.id, threadId: e.threadId, workflowEmailId: e.workflowEmailId })));
     
     try {
-      await emailService.unsnoozeEmail(workflowEmailId);
-
       const email = emails.find(e => e.workflowEmailId === workflowEmailId);
       // console.log('Found email to remove:', email);
+      
+      // Step 1: Modify labels (SNOOZED → INBOX)
+      if (email?.threadId) {
+        try {
+          const snoozedLabelId = await emailService.getSnoozedLabelId();
+          await emailService.modifyLabels({
+            threadId: email.threadId,
+            addLabelIds: ['INBOX'],
+            removeLabelIds: [snoozedLabelId],
+          });
+        } catch (modErr) {
+          console.warn('Failed to modify labels on unsnooze:', modErr);
+        }
+      }
+
+      // Step 2: Update workflow database
+      await emailService.unsnoozeEmail(workflowEmailId);
       
       if (email) {
         setEmails(prev => prev.filter(e => e.workflowEmailId !== workflowEmailId));

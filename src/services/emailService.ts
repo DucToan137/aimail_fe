@@ -84,20 +84,43 @@ function parseEmailAddresses(emailsStr: string): Array<{ name: string; email: st
 export const emailService = {
   async getMailboxes(): Promise<Mailbox[]> {
     try {
-      const labels = await apiClient.get<LabelResponse[]>('/mailboxes');
+      let labels = await apiClient.get<LabelResponse[]>('/mailboxes');
       console.log('Fetched Labels:', labels);
+      
+      // Check if SNOOZED label exists, if not try to create it
+      let snoozedLabel = labels.find(l => l.name?.toUpperCase() === 'SNOOZED');
+      if (!snoozedLabel) {
+        try {
+          console.log('SNOOZED label not found, creating...');
+          const createdLabel = await this.createLabel('SNOOZED');
+          console.log('Successfully created SNOOZED label:', createdLabel);
+          // Refetch labels to get the newly created one
+          labels = await apiClient.get<LabelResponse[]>('/mailboxes');
+          snoozedLabel = labels.find(l => l.name?.toUpperCase() === 'SNOOZED');
+        } catch (error) {
+          console.error('Failed to create SNOOZED label:', error);
+          // Don't add SNOOZED to mailboxes if creation failed
+          snoozedLabel = undefined;
+        }
+      }
+      
       const mailboxes: Mailbox[] = [];
       
       MAIN_LABEL_IDS.forEach(labelId => {
         if (labelId === 'SNOOZED') {
-          mailboxes.push({
-            id: 'SNOOZED',
-            name: 'Snoozed',
-            icon: 'Clock',
-            type: 'snoozed',
-            unreadCount: 0,
-            isMain: true,
-          });
+          // Only add SNOOZED mailbox if the label actually exists
+          if (snoozedLabel) {
+            mailboxes.push({
+              id: snoozedLabel.id,
+              name: 'Snoozed',
+              icon: 'Clock',
+              type: 'snoozed',
+              unreadCount: snoozedLabel.messagesUnread || snoozedLabel.threadsUnread || 0,
+              isMain: true,
+            });
+          } else {
+            console.warn('Skipping SNOOZED mailbox - label does not exist');
+          }
           return;
         }
         
@@ -116,6 +139,8 @@ export const emailService = {
       
       labels.forEach(label => {
         if (MAIN_LABEL_IDS.includes(label.id)) return;
+        
+        if (label.name?.toUpperCase() === 'SNOOZED') return;
         
         if (label.type === 'system' && !label.id.startsWith('CATEGORY_')) return;
         
@@ -158,12 +183,28 @@ export const emailService = {
     query?: string
   ): Promise<EmailListResponse> {
     try {
+      let isSnoozedMailbox = false;
+      
       if (mailboxId === 'SNOOZED') {
+        isSnoozedMailbox = true;
+      } else {
+        try {
+          const labels = await apiClient.get<LabelResponse[]>('/mailboxes');
+          const label = labels.find(l => l.id === mailboxId);
+          if (label && label.name?.toUpperCase() === 'SNOOZED') {
+            isSnoozedMailbox = true;
+          }
+        } catch (error) {
+          console.warn('Failed to check if mailbox is SNOOZED:', error);
+        }
+      }
+      
+      if (isSnoozedMailbox) {
         const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
           '/api/emails?status=SNOOZED'
         );
         
-        // console.log('Loaded SNOOZED emails from workflow API:', workflowEmails);
+        console.log('Loaded SNOOZED emails from workflow API:', workflowEmails.length, 'emails');
         
         const emails: Email[] = workflowEmails.map((email) => {
           if (!email.id) {
@@ -534,6 +575,39 @@ export const emailService = {
       return await apiClient.post<LabelResponse>('/mailboxes', { name });
     } catch (error) {
       console.error('Failed to create label:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get the real SNOOZED label ID from Gmail API
+   * Must be called after getMailboxes() which ensures the label exists
+   */
+  async getSnoozedLabelId(): Promise<string> {
+    try {
+      const labels = await apiClient.get<LabelResponse[]>('/mailboxes');
+      // Case-insensitive search for Snoozed label
+      const snoozedLabel = labels.find(l => 
+        l.name?.toUpperCase() === 'SNOOZED'
+      );
+      
+      if (snoozedLabel) {
+        console.log('Found Snoozed label ID:', snoozedLabel.id);
+        return snoozedLabel.id;
+      }
+      
+      // If not found, try to create it
+      console.warn('Snoozed label not found, attempting to create...');
+      try {
+        const createdLabel = await this.createLabel('SNOOZED');
+        console.log('Created SNOOZED label with ID:', createdLabel.id);
+        return createdLabel.id;
+      } catch (createError) {
+        console.error('Failed to create SNOOZED label:', createError);
+        throw new Error('SNOOZED label does not exist and could not be created');
+      }
+    } catch (error) {
+      console.error('Failed to get snoozed label ID:', error);
       throw error;
     }
   },

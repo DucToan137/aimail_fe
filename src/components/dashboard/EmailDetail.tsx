@@ -129,6 +129,8 @@ export function EmailDetail({
 }: EmailDetailProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
+  
+  const isSnoozedMailbox = email?.mailboxId === 'SNOOZED' || mailboxId === 'SNOOZED' || mailboxId.toUpperCase().includes('SNOOZED');
 
   if (!email) {
     return (
@@ -219,7 +221,7 @@ export function EmailDetail({
           <span className="hidden md:inline">Forward</span>
         </Button>
         
-        {mailboxId === 'SNOOZED' ? (
+        {isSnoozedMailbox ? (
           <Button
             onClick={() => {
               // console.log('Unsnooze button clicked');

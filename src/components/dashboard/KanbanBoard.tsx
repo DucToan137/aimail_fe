@@ -24,9 +24,9 @@ interface KanbanColumn {
 interface KanbanBoardProps {
   mailboxes: Mailbox[];
   selectedEmailId: string | null;
-  onEmailSelect: (emailId: string) => void;
+  onEmailSelect: (emailId: string, mailboxId?: string) => void;
   onEmailMove: (emailId: string, targetMailboxId: string, sourceMailboxId: string) => Promise<void>;
-  onSnooze: (emailId: string, snoozeDate: Date) => Promise<void>;
+  onSnooze: (emailId: string, snoozeDate: Date, threadId?: string, sourceColumn?: string) => Promise<void>;
   onUnsnooze: (workflowEmailId: number) => Promise<void>;
   onColumnsChange?: (columnIds: string[]) => void;
 }
@@ -52,7 +52,7 @@ export function KanbanBoard({
   const [loadingColumns, setLoadingColumns] = useState<Set<string>>(new Set());
   const [columnToDelete, setColumnToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isSnoozeModalOpen, setIsSnoozeModalOpen] = useState(false);
-  const [emailToSnooze, setEmailToSnooze] = useState<{ id: string; subject: string; sourceColumn: string } | null>(null);
+  const [emailToSnooze, setEmailToSnooze] = useState<{ id: string; subject: string; sourceColumn: string; threadId?: string } | null>(null);
   
   const [selectedColumnIds, setSelectedColumnIds] = useState<string[]>(() => {
     try {
@@ -199,7 +199,10 @@ export function KanbanBoard({
     
     console.log('handleDrop called:', { draggedEmailId, draggedSourceColumn, targetColumnId });
     
-    if (targetColumnId === 'SNOOZED') {
+    const targetMailbox = mailboxes.find(m => m.id === targetColumnId);
+    const isSnoozedTarget = targetMailbox?.type === 'snoozed';
+    
+    if (isSnoozedTarget) {
       console.log('Dropping into SNOOZED, looking for email:', draggedEmailId);
       console.log('Available emails in columns:', Object.keys(columnEmails).map(col => ({
         column: col,
@@ -217,6 +220,7 @@ export function KanbanBoard({
           id: draggedEmailId,
           subject: email.subject,
           sourceColumn: draggedSourceColumn,
+          threadId: email.threadId,
         });
         setIsSnoozeModalOpen(true);
         console.log('Opening snooze modal');
@@ -229,7 +233,10 @@ export function KanbanBoard({
       return;
     }
     
-    if (draggedSourceColumn === 'SNOOZED') {
+    const sourceMailbox = mailboxes.find(m => m.id === draggedSourceColumn);
+    const isSnoozedSource = sourceMailbox?.type === 'snoozed';
+    
+    if (isSnoozedSource) {
       console.log('Dragging from SNOOZED to', targetColumnId);
       const email = columnEmails[draggedSourceColumn]?.find(e => e.id === draggedEmailId || e.threadId === draggedEmailId);
       console.log('Found email:', email);
@@ -238,7 +245,25 @@ export function KanbanBoard({
       if (email?.workflowEmailId) {
         try {
           console.log('Calling onUnsnooze with workflowEmailId:', email.workflowEmailId);
+          
+          // Step 1: Modify labels (SNOOZED → target label)
+          try {
+            if (email.threadId) {
+              const snoozedLabelId = await emailService.getSnoozedLabelId();
+              const addLabels = targetColumnId === 'INBOX' ? ['INBOX'] : [targetColumnId];
+              await emailService.modifyLabels({
+                threadId: email.threadId,
+                addLabelIds: addLabels,
+                removeLabelIds: [snoozedLabelId],
+              });
+            }
+          } catch (modErr) {
+            console.warn('Failed to modify labels when unsnoozing:', modErr);
+          }
+
+          // Step 2: Update workflow database
           await onUnsnooze(email.workflowEmailId);
+
           toast.success('Email unsnoozed successfully');
           await loadColumnEmails(draggedSourceColumn, true);
           await loadColumnEmails(targetColumnId, true);
@@ -322,9 +347,19 @@ export function KanbanBoard({
     if (!emailToSnooze) return;
 
     try {
-      await onSnooze(emailToSnooze.id, snoozeDate);
+      await onSnooze(emailToSnooze.id, snoozeDate, emailToSnooze.threadId, emailToSnooze.sourceColumn);
+      
       await loadColumnEmails(emailToSnooze.sourceColumn, true);
-      await loadColumnEmails('SNOOZED', true);
+      
+      const snoozedColumn = columns.find(col => {
+        const mailbox = mailboxes.find(m => m.id === col.id);
+        return mailbox?.type === 'snoozed';
+      });
+      
+      if (snoozedColumn) {
+        console.log('Reloading SNOOZED column:', snoozedColumn.id);
+        await loadColumnEmails(snoozedColumn.id, true);
+      }
     } catch (error) {
       console.error('Failed to snooze email:', error);
     } finally {
@@ -346,7 +381,7 @@ export function KanbanBoard({
                 emails={columnEmails[column.id] || []}
                 selectedEmailId={selectedEmailId}
                 draggedEmailId={draggedEmailId}
-                onEmailSelect={onEmailSelect}
+                onEmailSelect={(emailId: string) => onEmailSelect(emailId, column.id)}
                 onDragStart={(emailId) => handleDragStart(emailId, column.id)}
                 onDragEnd={handleDragEnd}
                 onDrop={handleDrop}
@@ -372,7 +407,7 @@ export function KanbanBoard({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRemoveColumn} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={confirmRemoveColumn} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white">
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
