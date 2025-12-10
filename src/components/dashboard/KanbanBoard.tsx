@@ -29,6 +29,7 @@ interface KanbanBoardProps {
   onSnooze: (emailId: string, snoozeDate: Date, threadId?: string, sourceColumn?: string) => Promise<void>;
   onUnsnooze: (workflowEmailId: number) => Promise<void>;
   onColumnsChange?: (columnIds: string[]) => void;
+  refreshTrigger?: number;
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -43,6 +44,7 @@ export function KanbanBoard({
   onSnooze,
   onUnsnooze,
   onColumnsChange,
+  refreshTrigger,
 }: KanbanBoardProps) {
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
   const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(null);
@@ -114,6 +116,15 @@ export function KanbanBoard({
     loadAllColumns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columns]);
+
+  // Reload all columns when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      console.log('KanbanBoard: refreshTrigger changed, reloading all columns');
+      loadAllColumns();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
 
   const loadAllColumns = async () => {
     for (const column of columns) {

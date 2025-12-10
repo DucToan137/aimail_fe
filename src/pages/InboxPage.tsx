@@ -60,6 +60,7 @@ export function InboxPage() {
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
   const [hasMore, setHasMore] = useState(false);
+  const [kanbanRefreshTrigger, setKanbanRefreshTrigger] = useState(0);
 
   useEffect(() => {
     loadMailboxes();
@@ -532,6 +533,16 @@ export function InboxPage() {
     } catch (error) {
       console.error('Failed to unsnooze email:', error);
       toast.error('Failed to unsnooze email');
+    }
+  };
+
+  const handleUnsnoozeInKanban = async (workflowEmailId: number) => {
+    try {
+      await handleUnsnooze(workflowEmailId);
+      // Trigger KanbanBoard refresh
+      setKanbanRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      // Error already handled in handleUnsnooze
     }
   };
 
@@ -1019,6 +1030,7 @@ export function InboxPage() {
                 onEmailMove={handleEmailMove}
                 onSnooze={handleSnooze}
                 onUnsnooze={handleUnsnooze}
+                refreshTrigger={kanbanRefreshTrigger}
               />
             </div>
             {/* Email Detail Modal/Sheet */}
@@ -1038,7 +1050,7 @@ export function InboxPage() {
                     onToggleRead={() => selectedEmailId && handleToggleRead([selectedEmailId])}
                     onToggleStar={() => selectedEmailId && handleToggleStar(selectedEmailId)}
                     onSnooze={handleSnooze}
-                    onUnsnooze={handleUnsnooze}
+                    onUnsnooze={handleUnsnoozeInKanban}
                   />
                 </SheetContent>
               </Sheet>
