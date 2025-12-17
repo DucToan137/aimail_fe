@@ -181,7 +181,10 @@ export const emailService = {
     mailboxId: string,
     pageSize: number = 20,
     pageToken?: string,
-    query?: string
+    query?: string,
+    sort: 'newest' | 'oldest' | 'sender' = 'newest',
+    unreadOnly: boolean = false,
+    hasAttachments: boolean = false
   ): Promise<EmailListResponse> {
     try {
       let isSnoozedMailbox = false;
@@ -201,8 +204,14 @@ export const emailService = {
       }
       
       if (isSnoozedMailbox) {
+        const params = new URLSearchParams({
+          status: 'SNOOZED',
+          sort,
+          unreadOnly: unreadOnly.toString(),
+          hasAttachments: hasAttachments.toString(),
+        });
         const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
-          '/api/emails?status=SNOOZED'
+          `/api/emails?${params.toString()}`
         );
         
         console.log('Loaded SNOOZED emails from workflow API:', workflowEmails.length, 'emails');
@@ -252,6 +261,10 @@ export const emailService = {
       if (mailboxId === 'TRASH' || mailboxId === 'SPAM') {
         params.append('includeSpamTrash', 'true');
       }
+      
+      // Note: Backend /mailboxes endpoint may not support sort/filter params
+      // These will be applied client-side if backend doesn't handle them
+      
       const response = await apiClient.get<ListThreadResponse>(
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
@@ -281,6 +294,8 @@ export const emailService = {
         };
       });
       
+      console.log(`Initial emails from Gmail API - Total: ${emails.length}, Unread: ${emails.filter(e => !e.isRead).length}`);
+      
       try {
         const allWorkflowEmails = await apiClient.get<EmailWorkflowResponse[]>('/api/emails');
         const workflowEmailMap = new Map(
@@ -300,27 +315,65 @@ export const emailService = {
         emails = emails.map(email => {
           const workflowEmail = workflowEmailMap.get(email.threadId);
           if (workflowEmail) {
-            // Workflow status takes precedence over Gmail labels
+            // Workflow API has more complete and up-to-date data
+            // Use workflow data when available (includes user actions like mark as read/unread)
             return {
               ...email,
               isRead: workflowEmail.isRead ?? email.isRead,
               isStarred: workflowEmail.isStarred ?? email.isStarred,
+              hasAttachments: workflowEmail.hasAttachments ?? email.hasAttachments,
               workflowEmailId: workflowEmail.id, 
             };
           }
-          // No workflow email, use Gmail labels status
+          // No workflow email, use Gmail labels as fallback
           return email;
         });
         
-        // console.log('Merged workflow status for emails:', emails.filter(e => e.workflowEmailId).length);
+        console.log('Merged workflow status - Unread emails:', emails.filter(e => !e.isRead).length);
       } catch (error) {
         console.warn('Failed to fetch workflow emails for merging:', error);
         // Continue without merging if API call fails
       }
 
+      // Apply client-side filters since backend may not support them on /mailboxes endpoint
+      let filteredEmails = emails;
+      
+      // Filter by unread
+      if (unreadOnly) {
+        filteredEmails = filteredEmails.filter(email => !email.isRead);
+      }
+      
+      // Filter by attachments (only if we have attachment data)
+      if (hasAttachments) {
+        filteredEmails = filteredEmails.filter(email => email.hasAttachments);
+      }
+      
+      // Sort emails
+      if (sort === 'oldest') {
+        filteredEmails.sort((a, b) => {
+          const timeA = new Date(a.timestamp).getTime();
+          const timeB = new Date(b.timestamp).getTime();
+          return timeA - timeB;
+        });
+      } else if (sort === 'newest') {
+        filteredEmails.sort((a, b) => {
+          const timeA = new Date(a.timestamp).getTime();
+          const timeB = new Date(b.timestamp).getTime();
+          return timeB - timeA;
+        });
+      } else if (sort === 'sender') {
+        filteredEmails.sort((a, b) => {
+          const senderA = (a.from.name || a.from.email || '').toLowerCase();
+          const senderB = (b.from.name || b.from.email || '').toLowerCase();
+          return senderA.localeCompare(senderB);
+        });
+      }
+
+      console.log(`Applied filters - Original: ${emails.length}, Filtered: ${filteredEmails.length}, Sort: ${sort}, UnreadOnly: ${unreadOnly}, HasAttachments: ${hasAttachments}`);
+
       return {
-        emails,
-        total: Number(response.resultSizeEstimate) || emails.length,
+        emails: filteredEmails,
+        total: Number(response.resultSizeEstimate) || filteredEmails.length,
         page: 1,
         pageSize,
         nextPageToken: response.nextPageToken,

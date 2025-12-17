@@ -10,6 +10,7 @@ import { EmailDetail } from '@/components/dashboard/EmailDetail';
 import { ComposeEmailModal } from '@/components/dashboard/ComposeEmailModal';
 import { KanbanBoard } from '@/components/dashboard/KanbanBoard';
 import { SearchBar } from '@/components/dashboard/SearchBar';
+import { EmailFilters, type EmailFilterOptions } from '@/components/dashboard/EmailFilters';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -67,6 +68,16 @@ export function InboxPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
+  
+  // Filter state
+  const [filters, setFilters] = useState<EmailFilterOptions>(() => {
+    try {
+      const saved = localStorage.getItem('email-filters');
+      return saved ? JSON.parse(saved) : { sort: 'newest', unreadOnly: false, hasAttachments: false };
+    } catch {
+      return { sort: 'newest', unreadOnly: false, hasAttachments: false };
+    }
+  });
 
   useEffect(() => {
     loadMailboxes();
@@ -79,6 +90,14 @@ export function InboxPage() {
       console.error('Failed to save view mode to localStorage:', error);
     }
   }, [viewMode]);
+  
+  useEffect(() => {
+    try {
+      localStorage.setItem('email-filters', JSON.stringify(filters));
+    } catch (error) {
+      console.error('Failed to save filters to localStorage:', error);
+    }
+  }, [filters]);
 
   useEffect(() => {
     if (urlMailboxId && urlMailboxId !== selectedMailboxId) {
@@ -94,7 +113,7 @@ export function InboxPage() {
   useEffect(() => {
     loadEmails(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMailboxId]);
+  }, [selectedMailboxId, filters]);
 
   const prefetchEmailDetails = async (emailsToPrefetch: Email[], mailboxIdForPrefetch: string) => {
     const concurrency = 4;
@@ -170,7 +189,11 @@ export function InboxPage() {
       const response = await emailService.getEmailsByMailbox(
         selectedMailboxId,
         50, 
-        pageToken
+        pageToken,
+        undefined,
+        filters.sort,
+        filters.unreadOnly,
+        filters.hasAttachments
       );
       
       console.log(`Loaded emails for ${selectedMailboxId}:`, response.emails);
@@ -223,7 +246,15 @@ export function InboxPage() {
       navigate(`/mailbox/${mailboxId}/${emailId}`);
 
       try {
-        const response = await emailService.getEmailsByMailbox(mailboxId, 50);
+        const response = await emailService.getEmailsByMailbox(
+          mailboxId, 
+          50,
+          undefined,
+          undefined,
+          filters.sort,
+          filters.unreadOnly,
+          filters.hasAttachments
+        );
         setEmails(response.emails);
         setNextPageToken(response.nextPageToken);
         setHasMore(!!response.nextPageToken);
@@ -1106,6 +1137,7 @@ export function InboxPage() {
                 onSnooze={handleSnooze}
                 onUnsnooze={handleUnsnooze}
                 refreshTrigger={kanbanRefreshTrigger}
+                filters={filters}
               />
             </div>
             {/* Email Detail Modal/Sheet */}
@@ -1150,6 +1182,12 @@ export function InboxPage() {
                     >
                       Clear Search
                     </Button>
+                  )}
+                  {!isSearchMode && (
+                    <EmailFilters
+                      filters={filters}
+                      onFiltersChange={setFilters}
+                    />
                   )}
                   <Button
                     variant="outline"

@@ -4,6 +4,7 @@ import { KanbanColumn } from './KanbanColumn';
 import { SnoozeModal } from './SnoozeModal';
 import { emailService } from '@/services/emailService';
 import { toast } from 'sonner';
+import type { EmailFilterOptions } from './EmailFilters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,7 @@ interface KanbanBoardProps {
   onUnsnooze: (workflowEmailId: number) => Promise<void>;
   onColumnsChange?: (columnIds: string[]) => void;
   refreshTrigger?: number;
+  filters?: EmailFilterOptions;
 }
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
@@ -45,6 +47,7 @@ export function KanbanBoard({
   onUnsnooze,
   onColumnsChange,
   refreshTrigger,
+  filters,
 }: KanbanBoardProps) {
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
   const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(null);
@@ -115,7 +118,7 @@ export function KanbanBoard({
   useEffect(() => {
     loadAllColumns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columns]);
+  }, [columns, filters]);
 
   // Reload all columns when refreshTrigger changes
   useEffect(() => {
@@ -139,7 +142,14 @@ export function KanbanBoard({
 
     try {
       const pageToken = reset ? undefined : columnPages[columnId]?.pageToken;
-      const response = await emailService.getEmailsByMailbox(columnId, 5, pageToken);
+      const response = await emailService.getEmailsByMailbox(
+        columnId, 
+        5, 
+        pageToken,
+        filters?.sort,
+        filters?.unreadOnly,
+        filters?.hasAttachments
+      );
       
       // Hiển thị thông tin thread cơ bản ngay lập tức
       setColumnEmails(prev => ({
