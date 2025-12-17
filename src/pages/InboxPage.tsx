@@ -1201,6 +1201,11 @@ export function InboxPage() {
                     <EmailFilters
                       filters={filters}
                       onFiltersChange={setFilters}
+                      onClear={() => {
+                        // Clear filters from localStorage and reload page
+                        localStorage.removeItem('emailFilters');
+                        window.location.reload();
+                      }}
                     />
                   )}
                   <Button

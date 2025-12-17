@@ -644,6 +644,10 @@ export const emailService = {
     return response.json();
   },
 
+  async syncEmails(): Promise<void> {
+    return apiClient.post<void>('/sync');
+  },
+
   async replyToEmail(
     threadId: string,
     messageId: string,

@@ -20,10 +20,11 @@ export interface EmailFilterOptions {
 interface EmailFiltersProps {
   filters: EmailFilterOptions;
   onFiltersChange: (filters: EmailFilterOptions) => void;
+  onClear?: () => void;
   className?: string;
 }
 
-export function EmailFilters({ filters, onFiltersChange, className }: EmailFiltersProps) {
+export function EmailFilters({ filters, onFiltersChange, onClear, className }: EmailFiltersProps) {
   const hasActiveFilters = filters.unreadOnly || filters.hasAttachments;
 
   const handleSortChange = (sort: 'newest' | 'oldest' | 'sender') => {
@@ -109,13 +110,15 @@ export function EmailFilters({ filters, onFiltersChange, className }: EmailFilte
         <Button
           variant="ghost"
           size="sm"
-          onClick={() =>
+          onClick={() => {
             onFiltersChange({
               ...filters,
               unreadOnly: false,
               hasAttachments: false,
-            })
-          }
+            });
+            // Trigger reload/sync after clearing
+            onClear?.();
+          }}
           className="text-xs"
         >
           Clear
