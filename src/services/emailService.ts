@@ -269,10 +269,32 @@ export const emailService = {
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
 
-      let emails: Email[] = (response.threads || []).map((thread) => {
+      // Debug: Check response structure
+      console.log('Gmail API response structure:', {
+        hasThreads: !!response.threads,
+        threadCount: response.threads?.length,
+        firstThreadFull: response.threads?.[0],
+        firstThreadKeys: response.threads?.[0] ? Object.keys(response.threads[0]) : []
+      });
+
+      let emails: Email[] = (response.threads || []).map((thread, index) => {
         const labelIds = thread.labelIds || [];
-        const isRead = !labelIds.includes('UNREAD');
-        const isStarred = labelIds.includes('STARRED');
+        
+        // Backend returns labelIds: null - we need to assume unread if labelIds is empty/null
+        // This is a workaround until backend properly returns labelIds array
+        const hasLabelData = thread.labelIds !== null && thread.labelIds !== undefined;
+        const isRead = hasLabelData ? !labelIds.includes('UNREAD') : false; // Assume unread if no label data
+        const isStarred = hasLabelData ? labelIds.includes('STARRED') : false;
+        
+        // Debug: Log labels for first few emails
+        if (index < 3) {
+          console.log(`Thread ${thread.id}:`, {
+            labelIds: thread.labelIds,
+            hasLabelData,
+            isRead,
+            assumed: !hasLabelData ? 'UNREAD (no label data)' : 'from labels'
+          });
+        }
         
         return {
           id: thread.id,
@@ -298,6 +320,20 @@ export const emailService = {
       
       try {
         const allWorkflowEmails = await apiClient.get<EmailWorkflowResponse[]>('/api/emails');
+        console.log('Workflow API response:', {
+          count: allWorkflowEmails.length,
+          firstEmailFull: allWorkflowEmails[0],
+          firstEmailKeys: allWorkflowEmails[0] ? Object.keys(allWorkflowEmails[0]) : [],
+          sample3: allWorkflowEmails.slice(0, 3).map(e => ({
+            id: e.id,
+            threadId: e.threadId,
+            subject: e.subject,
+            isRead: e.isRead,
+            hasAttachments: e.hasAttachments,
+            status: e.status
+          }))
+        });
+        
         const workflowEmailMap = new Map(
           allWorkflowEmails.map(e => [e.threadId, e])
         );
@@ -315,11 +351,13 @@ export const emailService = {
         emails = emails.map(email => {
           const workflowEmail = workflowEmailMap.get(email.threadId);
           if (workflowEmail) {
-            // Workflow API has more complete and up-to-date data
-            // Use workflow data when available (includes user actions like mark as read/unread)
+            // Gmail's UNREAD label is the source of truth for read status
+            // Workflow data is only used for user-marked status and attachments
+            // Priority: Gmail isRead (from UNREAD label) > Workflow isRead (user actions)
             return {
               ...email,
-              isRead: workflowEmail.isRead ?? email.isRead,
+              // Keep Gmail's isRead status (from UNREAD label) as primary source
+              isRead: email.isRead,
               isStarred: workflowEmail.isStarred ?? email.isStarred,
               hasAttachments: workflowEmail.hasAttachments ?? email.hasAttachments,
               workflowEmailId: workflowEmail.id, 

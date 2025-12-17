@@ -140,19 +140,33 @@ export function InboxPage() {
           if (detail) {
             setEmails(prev => {
               if (mailboxIdForPrefetch !== selectedMailboxId) return prev;
-              return prev.map(e => {
+              
+              // Update emails with detail data
+              const updated = prev.map(e => {
                 if (e.id === detail.id) {
                   return { 
                     ...detail, 
                     preview: e.preview || detail.preview,
-                    isRead: e.workflowEmailId !== undefined ? e.isRead : detail.isRead,
-                    isStarred: e.workflowEmailId !== undefined ? e.isStarred : detail.isStarred,
+                    // Always use detail.isRead from labelIds (source of truth from Gmail)
+                    isRead: detail.isRead,
+                    isStarred: detail.isStarred,
                     workflowEmailId: e.workflowEmailId, 
                     snoozedUntil: e.snoozedUntil, 
                   };
                 }
                 return e;
               });
+              
+              // Re-apply filters after updating
+              let filtered = updated;
+              if (filters.unreadOnly) {
+                filtered = filtered.filter(email => !email.isRead);
+              }
+              if (filters.hasAttachments) {
+                filtered = filtered.filter(email => email.hasAttachments);
+              }
+              
+              return filtered;
             });
           }
         } catch (error) {
