@@ -1,29 +1,35 @@
-import { useState, useEffect, useRef } from 'react';
-import { Search, X, Clock, Loader2 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { searchHistoryManager } from '@/utils/searchHistory';
-import type { Email } from '@/types/email';
+import { useState, useEffect, useRef } from "react";
+import { Search, X, Clock, Loader2, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { searchHistoryManager } from "@/utils/searchHistory";
+import type { Email } from "@/types/email";
 
 interface SearchBarProps {
   emails: Email[];
-  onSearch: (query: string) => void;
+  onSearch: (query: string, isSemantic: boolean) => void;
   isSearching?: boolean;
   className?: string;
 }
 
 interface Suggestion {
-  type: 'sender' | 'subject' | 'history';
+  type: "sender" | "subject" | "history";
   value: string;
   label: string;
 }
 
-export function SearchBar({ emails, onSearch, isSearching = false, className }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+export function SearchBar({
+  emails,
+  onSearch,
+  isSearching = false,
+  className,
+}: SearchBarProps) {
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isSemantic, setIsSemantic] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,8 +39,8 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
       // Show recent search history when input is empty
       const recentQueries = searchHistoryManager.getRecentQueries(5);
       setSuggestions(
-        recentQueries.map(q => ({
-          type: 'history',
+        recentQueries.map((q) => ({
+          type: "history",
           value: q,
           label: q,
         }))
@@ -47,7 +53,7 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
 
     // Get unique senders that match the query
     const senderMap = new Map<string, { name: string; email: string }>();
-    emails.forEach(email => {
+    emails.forEach((email) => {
       const senderKey = email.from.email.toLowerCase();
       if (
         !senderMap.has(senderKey) &&
@@ -61,11 +67,11 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
     // Add sender suggestions (limit to 3)
     Array.from(senderMap.values())
       .slice(0, 3)
-      .forEach(sender => {
+      .forEach((sender) => {
         // Use name for search if available, otherwise use email
         const searchValue = sender.name || sender.email;
         newSuggestions.push({
-          type: 'sender',
+          type: "sender",
           value: searchValue,
           label: sender.name || sender.email,
         });
@@ -73,9 +79,9 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
 
     // Get subject keywords that match the query
     const subjectKeywords = new Set<string>();
-    emails.forEach(email => {
+    emails.forEach((email) => {
       const words = email.subject.toLowerCase().split(/\s+/);
-      words.forEach(word => {
+      words.forEach((word) => {
         if (
           word.length > 3 &&
           word.includes(queryLower) &&
@@ -89,9 +95,9 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
     // Add subject suggestions (limit to 2)
     Array.from(subjectKeywords)
       .slice(0, 2)
-      .forEach(keyword => {
+      .forEach((keyword) => {
         newSuggestions.push({
-          type: 'subject',
+          type: "subject",
           value: keyword,
           label: keyword,
         });
@@ -100,12 +106,12 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
     // Add matching search history
     const recentQueries = searchHistoryManager.getRecentQueries(10);
     recentQueries
-      .filter(q => q.toLowerCase().includes(queryLower))
+      .filter((q) => q.toLowerCase().includes(queryLower))
       .slice(0, 2)
-      .forEach(q => {
-        if (!newSuggestions.find(s => s.value === q)) {
+      .forEach((q) => {
+        if (!newSuggestions.find((s) => s.value === q)) {
           newSuggestions.push({
-            type: 'history',
+            type: "history",
             value: q,
             label: q,
           });
@@ -128,8 +134,8 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSearch = (searchQuery: string) => {
@@ -140,7 +146,7 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
     searchHistoryManager.addToHistory(trimmedQuery);
 
     // Trigger search
-    onSearch(trimmedQuery);
+    onSearch(trimmedQuery, isSemantic);
 
     // Close suggestions
     setShowSuggestions(false);
@@ -154,7 +160,7 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
         // Use selected suggestion
@@ -165,15 +171,15 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
         // Use current query
         handleSearch(query);
       }
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex(prev => 
+      setSelectedIndex((prev) =>
         prev < suggestions.length - 1 ? prev + 1 : prev
       );
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === 'Escape') {
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Escape") {
       setShowSuggestions(false);
       setSelectedIndex(-1);
     }
@@ -185,19 +191,19 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
   };
 
   const handleClear = () => {
-    setQuery('');
+    setQuery("");
     setShowSuggestions(false);
     setSelectedIndex(-1);
     inputRef.current?.focus();
   };
 
-  const getSuggestionIcon = (type: Suggestion['type']) => {
+  const getSuggestionIcon = (type: Suggestion["type"]) => {
     switch (type) {
-      case 'history':
+      case "history":
         return <Clock className="h-4 w-4 text-gray-400" />;
-      case 'sender':
+      case "sender":
         return <span className="text-sm text-gray-400">👤</span>;
-      case 'subject':
+      case "subject":
         return <span className="text-sm text-gray-400">📧</span>;
       default:
         return null;
@@ -206,25 +212,29 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
 
   const getSuggestionLabel = (suggestion: Suggestion) => {
     switch (suggestion.type) {
-      case 'history':
-        return 'Recent search';
-      case 'sender':
-        return 'From';
-      case 'subject':
-        return 'Subject';
+      case "history":
+        return "Recent search";
+      case "sender":
+        return "From";
+      case "subject":
+        return "Subject";
       default:
-        return '';
+        return "";
     }
   };
 
   return (
-    <div className={cn('relative', className)}>
-      <div className="relative">
+    <div className={cn("relative flex gap-2", className)}>
+      <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search emails (semantic search)..."
+          placeholder={
+            isSemantic
+              ? "Describe what to search (Semantic AI)..."
+              : "Search emails..."
+          }
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -247,19 +257,39 @@ export function SearchBar({ emails, onSearch, isSearching = false, className }: 
         )}
       </div>
 
+      <Button
+        variant={isSemantic ? "default" : "outline"}
+        size="sm"
+        onClick={() => setIsSemantic(!isSemantic)}
+        title={
+          isSemantic ? "Switch to Fuzzy Search" : "Switch to Semantic AI Search"
+        }
+        className={cn(
+          "transition-colors gap-2 min-w-[120px]",
+          isSemantic && "bg-purple-600 hover:bg-purple-700"
+        )}
+      >
+        <Sparkles
+          className={cn("h-4 w-4", isSemantic ? "text-white" : "text-gray-500")}
+        />
+        <span className={isSemantic ? "text-white" : "text-gray-700"}>
+          {isSemantic ? "Semantic AI" : "Fuzzy Search"}
+        </span>
+      </Button>
+
       {/* Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 top-full left-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
         >
           {suggestions.map((suggestion, index) => (
             <button
               key={`${suggestion.type}-${suggestion.value}-${index}`}
               onClick={() => handleSuggestionClick(suggestion)}
               className={cn(
-                'w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left',
-                selectedIndex === index && 'bg-gray-100'
+                "w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left",
+                selectedIndex === index && "bg-gray-100"
               )}
             >
               {getSuggestionIcon(suggestion.type)}

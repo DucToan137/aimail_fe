@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useAuth } from '../hooks/useAuth';
-import { Card } from '../components/ui/card';
-import { Loader2, Mail } from 'lucide-react';
-import { getErrorMessage } from '../utils/errorHandler';
+import React, { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "../hooks/useAuth";
+import { Card } from "../components/ui/card";
+import { Loader2, Mail } from "lucide-react";
+import { getErrorMessage } from "../utils/errorHandler";
+import { emailService } from "../services/emailService";
 
 export const GoogleCallbackPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,46 +14,54 @@ export const GoogleCallbackPage: React.FC = () => {
 
   useEffect(() => {
     const processCallback = async () => {
-      const code = searchParams.get('code');
-      const state = searchParams.get('state');
-      const error = searchParams.get('error');
+      const code = searchParams.get("code");
+      const state = searchParams.get("state");
+      const error = searchParams.get("error");
 
-      console.log('GoogleCallback - Processing callback:', { code: !!code, state, error });
+      console.log("GoogleCallback - Processing callback:", {
+        code: !!code,
+        state,
+        error,
+      });
 
       if (error) {
         toast.error(`Google authentication failed: ${error}`);
-        navigate('/login', { replace: true });
+        navigate("/login", { replace: true });
         return;
       }
 
       if (!code) {
-        toast.error('No authorization code received from Google');
-        navigate('/login', { replace: true });
+        toast.error("No authorization code received from Google");
+        navigate("/login", { replace: true });
         return;
       }
 
       try {
-        console.log('GoogleCallback - Calling handleGoogleCallback');
+        console.log("GoogleCallback - Calling handleGoogleCallback");
         await handleGoogleCallback(code, state || undefined);
-        console.log('GoogleCallback - handleGoogleCallback successful');
-        
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        toast.success('Google sign-in successful!');
-        
-        console.log('GoogleCallback - Navigating to inbox');
-        navigate('/inbox', { replace: true });
+        console.log("GoogleCallback - handleGoogleCallback successful");
+
+        emailService
+          .syncSemanticEmails()
+          .catch((err) =>
+            console.error("Failed to trigger semantic sync on login:", err)
+          );
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        toast.success("Google sign-in successful!");
+
+        console.log("GoogleCallback - Navigating to inbox");
+        navigate("/inbox", { replace: true });
       } catch (error) {
-        console.error('Google OAuth callback error:', error);
+        console.error("Google OAuth callback error:", error);
         toast.error(getErrorMessage(error));
-        navigate('/login', { replace: true });
+        navigate("/login", { replace: true });
       }
     };
 
     processCallback();
   }, [searchParams, handleGoogleCallback, navigate]);
-
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

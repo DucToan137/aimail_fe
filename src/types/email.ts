@@ -181,6 +181,7 @@ export interface EmailWorkflowResponse {
   receivedAt: string;
   createdAt: string;
   updatedAt: string;
+  hasAttachments?: boolean;
 }
 
 export interface EmailSummaryResponse {
