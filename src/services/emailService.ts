@@ -767,21 +767,37 @@ export const emailService = {
   async deleteLabel(labelId: string): Promise<void> {
     try {
       try {
-        const response = await this.getEmailsByMailbox(labelId, 100);
-        const threadIds = response.emails
-          .map((e) => e.threadId)
-          .filter(Boolean);
+        let pageToken: string | undefined = undefined;
+        let hasMore = true;
 
-        if (threadIds.length > 0) {
-          await Promise.all(
-            threadIds.map((threadId) =>
-              this.modifyLabels({
-                threadId,
-                addLabelIds: ["INBOX"],
-                removeLabelIds: [labelId],
-              })
-            )
+        while (hasMore) {
+          const response = await this.getEmailsByMailbox(
+            labelId,
+            50,
+            pageToken
           );
+
+          const threadIds = response.emails
+            .map((e) => e.threadId)
+            .filter(Boolean);
+
+          if (threadIds.length > 0) {
+            await Promise.all(
+              threadIds.map((threadId) =>
+                this.modifyLabels({
+                  threadId,
+                  addLabelIds: ["INBOX"],
+                  removeLabelIds: [labelId],
+                })
+              )
+            );
+          }
+
+          if (response.nextPageToken) {
+            pageToken = response.nextPageToken;
+          } else {
+            hasMore = false;
+          }
         }
       } catch (error) {
         console.warn(

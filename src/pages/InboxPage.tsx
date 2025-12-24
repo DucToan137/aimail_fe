@@ -264,7 +264,7 @@ export function InboxPage() {
       const pageToken = reset ? undefined : nextPageToken;
       const response = await emailService.getEmailsByMailbox(
         selectedMailboxId,
-        5,
+        50,
         pageToken,
         undefined,
         filters.sort,
