@@ -48,6 +48,69 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
   { id: "INBOX", name: "Inbox", icon: "Inbox" },
 ];
 
+// Helper function to apply filters to emails
+function applyKanbanFilters(
+  emails: Email[],
+  filters?: EmailFilterOptions
+): Email[] {
+  if (!filters) return emails;
+
+  let filtered = [...emails];
+
+  // Apply filters
+  if (filters.unreadOnly) {
+    filtered = filtered.filter((email) => {
+      if (email.messages && email.messages.length > 0) {
+        return !email.isRead;
+      }
+      return !email.isRead;
+    });
+  }
+
+  if (filters.hasAttachments) {
+    filtered = filtered.filter((email) => {
+      if (email.messages && email.messages.length > 0) {
+        return email.messages.some(
+          (msg) => msg.attachments && msg.attachments.length > 0
+        );
+      }
+      return email.hasAttachments;
+    });
+  }
+
+  // Apply sorting
+  filtered.sort((a, b) => {
+    if (filters.sort === "oldest") {
+      const dateA = a.messages?.[0]?.date || a.timestamp;
+      const dateB = b.messages?.[0]?.date || b.timestamp;
+      return new Date(dateA).getTime() - new Date(dateB).getTime();
+    } else if (filters.sort === "newest") {
+      const dateA = a.messages?.[0]?.date || a.timestamp;
+      const dateB = b.messages?.[0]?.date || b.timestamp;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    } else if (filters.sort === "sender") {
+      const senderA = (
+        a.messages?.[0]?.from.name ||
+        a.messages?.[0]?.from.email ||
+        a.from.name ||
+        a.from.email ||
+        ""
+      ).toLowerCase();
+      const senderB = (
+        b.messages?.[0]?.from.name ||
+        b.messages?.[0]?.from.email ||
+        b.from.name ||
+        b.from.email ||
+        ""
+      ).toLowerCase();
+      return senderA.localeCompare(senderB);
+    }
+    return 0;
+  });
+
+  return filtered;
+}
+
 export function KanbanBoard({
   mailboxes,
   selectedEmailId,
@@ -65,6 +128,11 @@ export function KanbanBoard({
     null
   );
   const [columns, setColumns] = useState<KanbanColumn[]>(DEFAULT_COLUMNS);
+  // Store raw emails without filters
+  const [rawColumnEmails, setRawColumnEmails] = useState<
+    Record<string, Email[]>
+  >({});
+  // Store filtered emails
   const [columnEmails, setColumnEmails] = useState<Record<string, Email[]>>({});
   const [columnPages, setColumnPages] = useState<
     Record<string, { pageToken?: string; hasMore: boolean }>
@@ -148,11 +216,20 @@ export function KanbanBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedColumnIds]);
 
+  // Apply filters to raw emails whenever they change
+  useEffect(() => {
+    const filtered: Record<string, Email[]> = {};
+    Object.keys(rawColumnEmails).forEach((columnId) => {
+      filtered[columnId] = applyKanbanFilters(rawColumnEmails[columnId], filters);
+    });
+    setColumnEmails(filtered);
+  }, [rawColumnEmails, filters]);
+
   // Load emails for each column
   useEffect(() => {
     loadAllColumns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columns, filters]);
+  }, [columns]);
 
   // Reload all columns when refreshTrigger changes
   useEffect(() => {
@@ -180,14 +257,11 @@ export function KanbanBoard({
         columnId,
         5,
         pageToken,
-        undefined, // query parameter
-        filters?.sort || "newest", // sort parameter
-        filters?.unreadOnly || false,
-        filters?.hasAttachments || false
+        undefined
       );
 
-      // Hiển thị thông tin thread cơ bản ngay lập tức
-      setColumnEmails((prev) => ({
+      // Update raw emails
+      setRawColumnEmails((prev) => ({
         ...prev,
         [columnId]: reset
           ? response.emails
@@ -202,7 +276,7 @@ export function KanbanBoard({
             columnId
           );
           if (fullEmail) {
-            setColumnEmails((prev) => {
+            setRawColumnEmails((prev) => {
               const currentEmails = prev[columnId] || [];
               const emailIndex = currentEmails.findIndex(
                 (e) => e.threadId === email.threadId

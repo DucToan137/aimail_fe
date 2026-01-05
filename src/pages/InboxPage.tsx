@@ -35,6 +35,74 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, ArrowLeft, LogOut, LayoutGrid, List, Plus } from "lucide-react";
 
+// Helper function to apply filters and sorting to emails
+function applyFiltersAndSort(
+  emails: Email[],
+  filters: EmailFilterOptions
+): Email[] {
+  let filtered = [...emails];
+
+  // Apply filters
+  if (filters.unreadOnly) {
+    filtered = filtered.filter((email) => {
+      // Check if email is unread from messages if available
+      if (email.messages && email.messages.length > 0) {
+        // If messages are loaded, we can check labelIds more accurately
+        // For now, use the isRead property
+        return !email.isRead;
+      }
+      return !email.isRead;
+    });
+  }
+
+  if (filters.hasAttachments) {
+    filtered = filtered.filter((email) => {
+      // Check if email has attachments from messages if available
+      if (email.messages && email.messages.length > 0) {
+        return email.messages.some(
+          (msg) => msg.attachments && msg.attachments.length > 0
+        );
+      }
+      return email.hasAttachments;
+    });
+  }
+
+  // Apply sorting
+  filtered.sort((a, b) => {
+    if (filters.sort === "oldest") {
+      // Sort by oldest first - use date from first message if available
+      const dateA = a.messages?.[0]?.date || a.timestamp;
+      const dateB = b.messages?.[0]?.date || b.timestamp;
+      return new Date(dateA).getTime() - new Date(dateB).getTime();
+    } else if (filters.sort === "newest") {
+      // Sort by newest first - use date from first message if available
+      const dateA = a.messages?.[0]?.date || a.timestamp;
+      const dateB = b.messages?.[0]?.date || b.timestamp;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    } else if (filters.sort === "sender") {
+      // Sort by sender - use from of first message if available
+      const senderA = (
+        a.messages?.[0]?.from.name ||
+        a.messages?.[0]?.from.email ||
+        a.from.name ||
+        a.from.email ||
+        ""
+      ).toLowerCase();
+      const senderB = (
+        b.messages?.[0]?.from.name ||
+        b.messages?.[0]?.from.email ||
+        b.from.name ||
+        b.from.email ||
+        ""
+      ).toLowerCase();
+      return senderA.localeCompare(senderB);
+    }
+    return 0;
+  });
+
+  return filtered;
+}
+
 export function InboxPage() {
   const navigate = useNavigate();
   const { mailboxId: urlMailboxId, emailId: urlEmailId } = useParams<{
@@ -43,6 +111,9 @@ export function InboxPage() {
   }>();
   const { user, logout } = useAuth();
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
+  // Store raw emails without filter/sort applied
+  const [rawEmails, setRawEmails] = useState<Email[]>([]);
+  // Display emails with filter/sort applied
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedMailboxId, setSelectedMailboxId] = useState<string>(
     urlMailboxId || "INBOX"
@@ -117,7 +188,11 @@ export function InboxPage() {
     } catch (error) {
       console.error("Failed to save filters to localStorage:", error);
     }
-  }, [filters]);
+
+    // Apply filters and sort to raw emails whenever filters change
+    const filtered = applyFiltersAndSort(rawEmails, filters);
+    setEmails(filtered);
+  }, [filters, rawEmails]);
 
   useEffect(() => {
     if (urlMailboxId && urlMailboxId !== selectedMailboxId) {
@@ -133,7 +208,7 @@ export function InboxPage() {
   useEffect(() => {
     loadEmails(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMailboxId, filters]);
+  }, [selectedMailboxId]);
 
   const prefetchEmailDetails = async (
     emailsToPrefetch: Email[],
@@ -168,10 +243,10 @@ export function InboxPage() {
             mailboxIdForPrefetch
           );
           if (detail) {
-            setEmails((prev) => {
+            setRawEmails((prev) => {
               if (mailboxIdForPrefetch !== selectedMailboxId) return prev;
 
-              // Update emails with detail data - preserve order
+              // Update rawEmails with detail data - preserve order
               const updated = prev.map((e) => {
                 if (e.id === detail.id) {
                   return {
@@ -187,17 +262,7 @@ export function InboxPage() {
                 return e;
               });
 
-              // Only re-apply filters, DO NOT re-sort
-              // Sorting was already done by the backend/initial load
-              let filtered = updated;
-              if (filters.unreadOnly) {
-                filtered = filtered.filter((email) => !email.isRead);
-              }
-              if (filters.hasAttachments) {
-                filtered = filtered.filter((email) => email.hasAttachments);
-              }
-
-              return filtered;
+              return updated;
             });
           }
         } catch (error) {
@@ -238,18 +303,15 @@ export function InboxPage() {
         selectedMailboxId,
         50,
         pageToken,
-        undefined,
-        filters.sort,
-        filters.unreadOnly,
-        filters.hasAttachments
+        undefined
       );
 
       console.log(`Loaded emails for ${selectedMailboxId}:`, response.emails);
 
       if (reset) {
-        setEmails(response.emails);
+        setRawEmails(response.emails);
       } else {
-        setEmails((prev) => [...prev, ...response.emails]);
+        setRawEmails((prev) => [...prev, ...response.emails]);
       }
 
       prefetchEmailDetails(response.emails, selectedMailboxId).catch((err) =>
@@ -302,12 +364,9 @@ export function InboxPage() {
           mailboxId,
           50,
           undefined,
-          undefined,
-          filters.sort,
-          filters.unreadOnly,
-          filters.hasAttachments
+          undefined
         );
-        setEmails(response.emails);
+        setRawEmails(response.emails);
         setNextPageToken(response.nextPageToken);
         setHasMore(!!response.nextPageToken);
       } catch (error) {
@@ -323,7 +382,7 @@ export function InboxPage() {
     setSelectedEmailId(emailId);
     setShowEmailDetail(true);
 
-    const email = emails.find((e) => e.id === emailId);
+    const email = rawEmails.find((e) => e.id === emailId);
     if (email && !email.messages) {
       try {
         console.log("Fetching email detail on select:", {
@@ -336,7 +395,7 @@ export function InboxPage() {
           mailboxId || selectedMailboxId
         );
         if (detail) {
-          setEmails((prev) =>
+          setRawEmails((prev) =>
             prev.map((e) => {
               if (e.id === detail.id) {
                 return {
@@ -368,13 +427,13 @@ export function InboxPage() {
 
   const handleToggleStar = async (emailId: string) => {
     try {
-      const email = emails.find((e) => e.id === emailId);
+      const email = rawEmails.find((e) => e.id === emailId);
       if (!email) return;
 
       const newStarred = !email.isStarred;
 
-      setEmails(
-        emails.map((e) =>
+      setRawEmails(
+        rawEmails.map((e) =>
           e.id === emailId ? { ...e, isStarred: newStarred } : e
         )
       );
@@ -393,7 +452,7 @@ export function InboxPage() {
             workflowId = newEmail.id;
             await emailService.updateEmailStatus(workflowId, "INBOX");
 
-            setEmails((prev) =>
+            setRawEmails((prev) =>
               prev.map((e) =>
                 e.id === emailId ? { ...e, workflowEmailId: workflowId } : e
               )
@@ -407,8 +466,8 @@ export function InboxPage() {
 
         toast.success(email.isStarred ? "Removed star" : "Added star");
       } catch (error) {
-        setEmails(
-          emails.map((e) =>
+        setRawEmails(
+          rawEmails.map((e) =>
             e.id === emailId ? { ...e, isStarred: email.isStarred } : e
           )
         );
@@ -421,9 +480,9 @@ export function InboxPage() {
   };
 
   const handleDelete = async (emailIds: string[]) => {
-    const emailsToDelete = emails.filter((e) => emailIds.includes(e.id));
+    const emailsToDelete = rawEmails.filter((e) => emailIds.includes(e.id));
 
-    setEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
+    setRawEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
@@ -443,9 +502,9 @@ export function InboxPage() {
   };
 
   const handlePermanentDelete = async (emailIds: string[]) => {
-    const emailsToDelete = emails.filter((e) => emailIds.includes(e.id));
+    const emailsToDelete = rawEmails.filter((e) => emailIds.includes(e.id));
 
-    setEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
+    setRawEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
@@ -465,9 +524,9 @@ export function InboxPage() {
   };
 
   const handleMoveToInbox = async (emailIds: string[]) => {
-    const emailsToMove = emails.filter((e) => emailIds.includes(e.id));
+    const emailsToMove = rawEmails.filter((e) => emailIds.includes(e.id));
 
-    setEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
+    setRawEmails((prev) => prev.filter((email) => !emailIds.includes(email.id)));
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
       setShowEmailDetail(false);
@@ -494,10 +553,10 @@ export function InboxPage() {
 
   const handleToggleRead = async (emailIds: string[]) => {
     try {
-      const emailsToUpdate = emails.filter((e) => emailIds.includes(e.id));
+      const emailsToUpdate = rawEmails.filter((e) => emailIds.includes(e.id));
 
-      setEmails(
-        emails.map((email) =>
+      setRawEmails(
+        rawEmails.map((email) =>
           emailIds.includes(email.id)
             ? { ...email, isRead: !email.isRead }
             : email
@@ -529,7 +588,7 @@ export function InboxPage() {
                 workflowId = newEmail.id;
                 await emailService.updateEmailStatus(workflowId, "INBOX");
 
-                setEmails((prev) =>
+                setRawEmails((prev) =>
                   prev.map((e) =>
                     e.id === email.id
                       ? { ...e, workflowEmailId: workflowId }
@@ -550,8 +609,8 @@ export function InboxPage() {
 
         toast.success("Updated read status");
       } catch (error) {
-        setEmails(
-          emails.map((email) =>
+        setRawEmails(
+          rawEmails.map((email) =>
             emailIds.includes(email.id)
               ? { ...email, isRead: email.isRead }
               : email
@@ -575,7 +634,7 @@ export function InboxPage() {
       let targetThreadId = threadId;
 
       if (!targetThreadId) {
-        const email = emails.find(
+        const email = rawEmails.find(
           (e) => e.id === emailId || e.threadId === emailId
         );
         if (!email) {
@@ -604,7 +663,7 @@ export function InboxPage() {
       await emailService.snoozeEmailByThreadId(targetThreadId!, snoozeDate);
 
       // Remove from current list if present
-      setEmails((prev) => prev.filter((e) => e.id !== emailId));
+      setRawEmails((prev) => prev.filter((e) => e.id !== emailId));
 
       if (selectedEmailId === emailId) {
         setSelectedEmailId(null);
@@ -628,10 +687,10 @@ export function InboxPage() {
 
   const handleUnsnooze = async (workflowEmailId: number) => {
     // console.log('handleUnsnooze called with workflowEmailId:', workflowEmailId);
-    // console.log('Current emails:', emails.map(e => ({ id: e.id, threadId: e.threadId, workflowEmailId: e.workflowEmailId })));
+    // console.log('Current rawEmails:', rawEmails.map(e => ({ id: e.id, threadId: e.threadId, workflowEmailId: e.workflowEmailId })));
 
     try {
-      const email = emails.find((e) => e.workflowEmailId === workflowEmailId);
+      const email = rawEmails.find((e) => e.workflowEmailId === workflowEmailId);
       // console.log('Found email to remove:', email);
 
       // Step 1: Modify labels (SNOOZED → INBOX)
@@ -652,7 +711,7 @@ export function InboxPage() {
       await emailService.unsnoozeEmail(workflowEmailId);
 
       if (email) {
-        setEmails((prev) =>
+        setRawEmails((prev) =>
           prev.filter((e) => e.workflowEmailId !== workflowEmailId)
         );
 
@@ -822,7 +881,7 @@ export function InboxPage() {
     targetMailboxId: string,
     sourceMailboxId: string
   ) => {
-    const email = emails.find((e) => e.id === emailId);
+    const email = rawEmails.find((e) => e.id === emailId);
     if (!email) return;
 
     try {
@@ -967,7 +1026,7 @@ export function InboxPage() {
 
       toast.dismiss();
 
-      setEmails(searchResults);
+      setRawEmails(searchResults);
       setIsSearchMode(true);
       setSelectedEmailId(null);
 

@@ -17,7 +17,6 @@ import type {
   EmailStatus,
   EmailSummaryResponse,
 } from "../types/email";
-import { toast } from "sonner";
 
 const MAIN_LABEL_IDS = [
   "INBOX",
@@ -192,10 +191,7 @@ export const emailService = {
     mailboxId: string,
     pageSize: number = 20,
     pageToken?: string,
-    query?: string,
-    sort: "newest" | "oldest" | "sender" = "newest",
-    unreadOnly: boolean = false,
-    hasAttachments: boolean = false
+    query?: string
   ): Promise<EmailListResponse> {
     try {
       // Check if this is a SNOOZED mailbox - use workflow API for snoozed emails
@@ -223,7 +219,7 @@ export const emailService = {
           `/api/emails?${params.toString()}`
         );
 
-        let emails: Email[] = workflowEmails.map((email) => ({
+        const emails: Email[] = workflowEmails.map((email) => ({
           id: email.threadId,
           threadId: email.threadId,
           from: parseEmailAddress(email.from || ""),
@@ -243,27 +239,6 @@ export const emailService = {
           snoozedUntil: email.snoozedUntil,
           workflowEmailId: email.id,
         }));
-
-        // Apply filters
-        if (unreadOnly) {
-          emails = emails.filter((email) => !email.isRead);
-        }
-        if (hasAttachments) {
-          emails = emails.filter((email) => email.hasAttachments);
-        }
-
-        // Apply sort
-        if (sort === "oldest") {
-          emails.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-        } else if (sort === "newest") {
-          emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        } else if (sort === "sender") {
-          emails.sort((a, b) => {
-            const senderA = (a.from.name || a.from.email || "").toLowerCase();
-            const senderB = (b.from.name || b.from.email || "").toLowerCase();
-            return senderA.localeCompare(senderB);
-          });
-        }
 
         return {
           emails,
@@ -288,7 +263,7 @@ export const emailService = {
       );
 
       // Map threads to Email objects
-      let emails: Email[] = (response.threads || []).map((thread) => {
+      const emails: Email[] = (response.threads || []).map((thread) => {
         const labelIds = thread.labelIds || [];
         const isRead = !labelIds.includes("UNREAD");
         const isStarred = labelIds.includes("STARRED");
@@ -312,27 +287,6 @@ export const emailService = {
           messages: undefined,
         };
       });
-
-      // Apply client-side filters
-      if (unreadOnly) {
-        emails = emails.filter((email) => !email.isRead);
-      }
-      if (hasAttachments) {
-        emails = emails.filter((email) => email.hasAttachments);
-      }
-
-      // Apply client-side sorting
-      if (sort === "oldest") {
-        emails.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      } else if (sort === "newest") {
-        emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      } else if (sort === "sender") {
-        emails.sort((a, b) => {
-          const senderA = (a.from.name || a.from.email || "").toLowerCase();
-          const senderB = (b.from.name || b.from.email || "").toLowerCase();
-          return senderA.localeCompare(senderB);
-        });
-      }
 
       return {
         emails,
