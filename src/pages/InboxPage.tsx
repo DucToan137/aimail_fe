@@ -171,7 +171,7 @@ export function InboxPage() {
             setEmails((prev) => {
               if (mailboxIdForPrefetch !== selectedMailboxId) return prev;
 
-              // Update emails with detail data
+              // Update emails with detail data - preserve order
               const updated = prev.map((e) => {
                 if (e.id === detail.id) {
                   return {
@@ -187,42 +187,14 @@ export function InboxPage() {
                 return e;
               });
 
-              // Re-apply filters after updating
+              // Only re-apply filters, DO NOT re-sort
+              // Sorting was already done by the backend/initial load
               let filtered = updated;
               if (filters.unreadOnly) {
                 filtered = filtered.filter((email) => !email.isRead);
               }
               if (filters.hasAttachments) {
                 filtered = filtered.filter((email) => email.hasAttachments);
-              }
-
-              // Re-apply sort after updating timestamp
-              if (filters.sort === "oldest") {
-                filtered.sort((a, b) => {
-                  const timeA = new Date(a.timestamp).getTime();
-                  const timeB = new Date(b.timestamp).getTime();
-                  return timeA - timeB;
-                });
-              } else if (filters.sort === "newest") {
-                filtered.sort((a, b) => {
-                  const timeA = new Date(a.timestamp).getTime();
-                  const timeB = new Date(b.timestamp).getTime();
-                  return timeB - timeA;
-                });
-              } else if (filters.sort === "sender") {
-                filtered.sort((a, b) => {
-                  const senderA = (
-                    a.from.name ||
-                    a.from.email ||
-                    ""
-                  ).toLowerCase();
-                  const senderB = (
-                    b.from.name ||
-                    b.from.email ||
-                    ""
-                  ).toLowerCase();
-                  return senderA.localeCompare(senderB);
-                });
               }
 
               return filtered;

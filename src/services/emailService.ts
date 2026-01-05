@@ -198,8 +198,8 @@ export const emailService = {
     hasAttachments: boolean = false
   ): Promise<EmailListResponse> {
     try {
+      // Check if this is a SNOOZED mailbox - use workflow API for snoozed emails
       let isSnoozedMailbox = false;
-
       if (mailboxId === "SNOOZED") {
         isSnoozedMailbox = true;
       } else {
@@ -214,49 +214,56 @@ export const emailService = {
         }
       }
 
+      // Handle SNOOZED mailbox separately using workflow API
       if (isSnoozedMailbox) {
         const params = new URLSearchParams({
           status: "SNOOZED",
-          sort,
-          unreadOnly: unreadOnly.toString(),
-          hasAttachments: hasAttachments.toString(),
         });
         const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
           `/api/emails?${params.toString()}`
         );
 
-        console.log(
-          "Loaded SNOOZED emails from workflow API:",
-          workflowEmails.length,
-          "emails"
-        );
+        let emails: Email[] = workflowEmails.map((email) => ({
+          id: email.threadId,
+          threadId: email.threadId,
+          from: parseEmailAddress(email.from || ""),
+          to: parseEmailAddresses(email.to || ""),
+          subject: email.subject || "(No Subject)",
+          preview: email.snippet || "",
+          body: email.body || "",
+          htmlBody: undefined,
+          timestamp: email.receivedAt || new Date().toISOString(),
+          isRead: email.isRead ?? true,
+          isStarred: email.isStarred ?? false,
+          hasAttachments: email.hasAttachments ?? false,
+          attachments: [],
+          mailboxId: "SNOOZED",
+          messageId: undefined,
+          messages: undefined,
+          snoozedUntil: email.snoozedUntil,
+          workflowEmailId: email.id,
+        }));
 
-        const emails: Email[] = workflowEmails.map((email) => {
-          if (!email.id) {
-            console.error("Missing workflow email ID:", email);
-          }
+        // Apply filters
+        if (unreadOnly) {
+          emails = emails.filter((email) => !email.isRead);
+        }
+        if (hasAttachments) {
+          emails = emails.filter((email) => email.hasAttachments);
+        }
 
-          return {
-            id: email.threadId,
-            threadId: email.threadId,
-            from: parseEmailAddress(email.from || ""),
-            to: parseEmailAddresses(email.to || ""),
-            subject: email.subject || "(No Subject)",
-            preview: email.snippet || "",
-            body: email.body || "",
-            htmlBody: undefined,
-            timestamp: email.receivedAt || new Date().toISOString(),
-            isRead: email.isRead ?? true,
-            isStarred: email.isStarred ?? false,
-            hasAttachments: false,
-            attachments: [],
-            mailboxId: "SNOOZED",
-            messageId: undefined,
-            messages: undefined,
-            snoozedUntil: email.snoozedUntil,
-            workflowEmailId: email.id,
-          };
-        });
+        // Apply sort
+        if (sort === "oldest") {
+          emails.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        } else if (sort === "newest") {
+          emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        } else if (sort === "sender") {
+          emails.sort((a, b) => {
+            const senderA = (a.from.name || a.from.email || "").toLowerCase();
+            const senderB = (b.from.name || b.from.email || "").toLowerCase();
+            return senderA.localeCompare(senderB);
+          });
+        }
 
         return {
           emails,
@@ -267,52 +274,24 @@ export const emailService = {
         };
       }
 
+      // Handle normal mailboxes - fetch from Gmail API
       const params = new URLSearchParams();
-
       if (pageSize) params.append("maxResults", pageSize.toString());
       if (pageToken) params.append("pageToken", pageToken);
       if (query) params.append("query", query);
-
       if (mailboxId === "TRASH" || mailboxId === "SPAM") {
         params.append("includeSpamTrash", "true");
       }
-
-      // Note: Backend /mailboxes endpoint may not support sort/filter params
-      // These will be applied client-side if backend doesn't handle them
 
       const response = await apiClient.get<ListThreadResponse>(
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );
 
-      // Debug: Check response structure
-      console.log("Gmail API response structure:", {
-        hasThreads: !!response.threads,
-        threadCount: response.threads?.length,
-        firstThreadFull: response.threads?.[0],
-        firstThreadKeys: response.threads?.[0]
-          ? Object.keys(response.threads[0])
-          : [],
-      });
-
-      let emails: Email[] = (response.threads || []).map((thread, index) => {
+      // Map threads to Email objects
+      let emails: Email[] = (response.threads || []).map((thread) => {
         const labelIds = thread.labelIds || [];
-
-        // Backend returns labelIds: null - we need to assume unread if labelIds is empty/null
-        // This is a workaround until backend properly returns labelIds array
-        const hasLabelData =
-          thread.labelIds !== null && thread.labelIds !== undefined;
-        const isRead = hasLabelData ? !labelIds.includes("UNREAD") : false; // Assume unread if no label data
-        const isStarred = hasLabelData ? labelIds.includes("STARRED") : false;
-
-        // Debug: Log labels for first few emails
-        if (index < 3) {
-          console.log(`Thread ${thread.id}:`, {
-            labelIds: thread.labelIds,
-            hasLabelData,
-            isRead,
-            assumed: !hasLabelData ? "UNREAD (no label data)" : "from labels",
-          });
-        }
+        const isRead = !labelIds.includes("UNREAD");
+        const isStarred = labelIds.includes("STARRED");
 
         return {
           id: thread.id,
@@ -334,118 +313,30 @@ export const emailService = {
         };
       });
 
-      console.log(
-        `Initial emails from Gmail API - Total: ${emails.length}, Unread: ${
-          emails.filter((e) => !e.isRead).length
-        }`
-      );
-
-      try {
-        const allWorkflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
-          "/api/emails"
-        );
-        console.log("Workflow API response:", {
-          count: allWorkflowEmails.length,
-          firstEmailFull: allWorkflowEmails[0],
-          firstEmailKeys: allWorkflowEmails[0]
-            ? Object.keys(allWorkflowEmails[0])
-            : [],
-          sample3: allWorkflowEmails.slice(0, 3).map((e) => ({
-            id: e.id,
-            threadId: e.threadId,
-            subject: e.subject,
-            isRead: e.isRead,
-            hasAttachments: e.hasAttachments,
-            status: e.status,
-          })),
-        });
-
-        const workflowEmailMap = new Map(
-          allWorkflowEmails.map((e) => [e.threadId, e])
-        );
-
-        const snoozedThreadIds = new Set(
-          allWorkflowEmails
-            .filter((e) => e.status === "SNOOZED")
-            .map((e) => e.threadId)
-        );
-
-        if (snoozedThreadIds.size > 0) {
-          emails = emails.filter(
-            (email) => !snoozedThreadIds.has(email.threadId)
-          );
-        }
-
-        emails = emails.map((email) => {
-          const workflowEmail = workflowEmailMap.get(email.threadId);
-          if (workflowEmail) {
-            // Gmail's UNREAD label is the source of truth for read status
-            // Workflow data is only used for user-marked status and attachments
-            // Priority: Gmail isRead (from UNREAD label) > Workflow isRead (user actions)
-            return {
-              ...email,
-              // Keep Gmail's isRead status (from UNREAD label) as primary source
-              isRead: email.isRead,
-              isStarred: workflowEmail.isStarred ?? email.isStarred,
-              hasAttachments:
-                workflowEmail.hasAttachments ?? email.hasAttachments,
-              workflowEmailId: workflowEmail.id,
-            };
-          }
-          // No workflow email, use Gmail labels as fallback
-          return email;
-        });
-
-        console.log(
-          "Merged workflow status - Unread emails:",
-          emails.filter((e) => !e.isRead).length
-        );
-      } catch (error) {
-        console.warn("Failed to fetch workflow emails for merging:", error);
-        // Continue without merging if API call fails
-      }
-
-      // Apply client-side filters since backend may not support them on /mailboxes endpoint
-      let filteredEmails = emails;
-
-      // Filter by unread
+      // Apply client-side filters
       if (unreadOnly) {
-        filteredEmails = filteredEmails.filter((email) => !email.isRead);
+        emails = emails.filter((email) => !email.isRead);
       }
-
-      // Filter by attachments (only if we have attachment data)
       if (hasAttachments) {
-        filteredEmails = filteredEmails.filter((email) => email.hasAttachments);
+        emails = emails.filter((email) => email.hasAttachments);
       }
 
-      // Sort emails
+      // Apply client-side sorting
       if (sort === "oldest") {
-        filteredEmails.sort((a, b) => {
-          const timeA = new Date(a.timestamp).getTime();
-          const timeB = new Date(b.timestamp).getTime();
-          return timeA - timeB;
-        });
+        emails.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       } else if (sort === "newest") {
-        filteredEmails.sort((a, b) => {
-          const timeA = new Date(a.timestamp).getTime();
-          const timeB = new Date(b.timestamp).getTime();
-          return timeB - timeA;
-        });
+        emails.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       } else if (sort === "sender") {
-        filteredEmails.sort((a, b) => {
+        emails.sort((a, b) => {
           const senderA = (a.from.name || a.from.email || "").toLowerCase();
           const senderB = (b.from.name || b.from.email || "").toLowerCase();
           return senderA.localeCompare(senderB);
         });
       }
 
-      console.log(
-        `Applied filters - Original: ${emails.length}, Filtered: ${filteredEmails.length}, Sort: ${sort}, UnreadOnly: ${unreadOnly}, HasAttachments: ${hasAttachments}`
-      );
-
       return {
-        emails: filteredEmails,
-        total: Number(response.resultSizeEstimate) || filteredEmails.length,
+        emails,
+        total: Number(response.resultSizeEstimate) || emails.length,
         page: 1,
         pageSize,
         nextPageToken: response.nextPageToken,
@@ -464,26 +355,6 @@ export const emailService = {
       if (!threadId || threadId === "undefined" || threadId === "null") {
         console.error("Invalid threadId:", threadId);
         return null;
-      }
-
-      let cachedWorkflowEmailId: number | undefined = undefined;
-      try {
-        const workflowEmails = await apiClient.get<EmailWorkflowResponse[]>(
-          "/api/emails"
-        );
-        const workflowEmail = workflowEmails.find(
-          (e) => e.threadId === threadId
-        );
-        if (workflowEmail) {
-          cachedWorkflowEmailId = workflowEmail.id;
-        }
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch workflow email"
-        );
-        console.warn("Failed to fetch workflow email for threadId:", threadId);
       }
 
       const thread = await apiClient.get<ThreadDetailResponse>(
@@ -550,7 +421,6 @@ export const emailService = {
         })),
         mailboxId: mailboxId || "INBOX",
         messages,
-        workflowEmailId: cachedWorkflowEmailId,
       };
     } catch (error) {
       console.error("Failed to fetch email:", error);
