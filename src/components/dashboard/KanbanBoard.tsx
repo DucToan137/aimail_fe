@@ -421,9 +421,22 @@ export function KanbanBoard({
           // Step 2: Update workflow database
           await onUnsnooze(email.workflowEmailId);
 
+          // Update UI immediately without reloading
+          // Remove from source (SNOOZED) column
+          setRawColumnEmails((prev) => ({
+            ...prev,
+            [draggedSourceColumn]: prev[draggedSourceColumn]?.filter(
+              (e) => e.id !== draggedEmailId && e.threadId !== draggedEmailId
+            ) || [],
+          }));
+          
+          // Add to target column at the beginning
+          setRawColumnEmails((prev) => ({
+            ...prev,
+            [targetColumnId]: [email, ...(prev[targetColumnId] || [])],
+          }));
+
           toast.success("Email unsnoozed successfully");
-          await loadColumnEmails(draggedSourceColumn, true);
-          await loadColumnEmails(targetColumnId, true);
         } catch (error) {
           console.error("Failed to unsnooze email:", error);
           toast.error("Failed to unsnooze email");
@@ -443,12 +456,36 @@ export function KanbanBoard({
     }
 
     try {
+      // Call API to update labels (backend)
       await onEmailMove(draggedEmailId, targetColumnId, draggedSourceColumn);
-      // Refresh both columns
-      await loadColumnEmails(draggedSourceColumn, true);
-      await loadColumnEmails(targetColumnId, true);
+      
+      // Update UI immediately without reloading (FE only)
+      const emailToMove = rawColumnEmails[draggedSourceColumn]?.find(
+        (e) => e.id === draggedEmailId
+      );
+      
+      if (emailToMove) {
+        // Remove from source column
+        setRawColumnEmails((prev) => ({
+          ...prev,
+          [draggedSourceColumn]: prev[draggedSourceColumn]?.filter(
+            (e) => e.id !== draggedEmailId
+          ) || [],
+        }));
+        
+        // Add to target column at the beginning
+        setRawColumnEmails((prev) => ({
+          ...prev,
+          [targetColumnId]: [emailToMove, ...(prev[targetColumnId] || [])],
+        }));
+      }
+      
+      toast.success("Email moved successfully");
     } catch (error) {
       console.error("Failed to move email:", error);
+      // If API call fails, reload both columns to restore correct state
+      await loadColumnEmails(draggedSourceColumn, true);
+      await loadColumnEmails(targetColumnId, true);
     } finally {
       setDraggedEmailId(null);
       setDraggedSourceColumn(null);
@@ -508,19 +545,49 @@ export function KanbanBoard({
         emailToSnooze.sourceColumn
       );
 
-      await loadColumnEmails(emailToSnooze.sourceColumn, true);
+      // Update UI immediately without reloading
+      const emailToMove = rawColumnEmails[emailToSnooze.sourceColumn]?.find(
+        (e) => e.id === emailToSnooze.id
+      );
 
+      if (emailToMove) {
+        // Remove from source column
+        setRawColumnEmails((prev) => ({
+          ...prev,
+          [emailToSnooze.sourceColumn]: prev[emailToSnooze.sourceColumn]?.filter(
+            (e) => e.id !== emailToSnooze.id
+          ) || [],
+        }));
+
+        // Find SNOOZED column and add email to it
+        const snoozedColumn = columns.find((col) => {
+          const mailbox = mailboxes.find((m) => m.id === col.id);
+          return mailbox?.type === "snoozed";
+        });
+
+        if (snoozedColumn) {
+          setRawColumnEmails((prev) => ({
+            ...prev,
+            [snoozedColumn.id]: [
+              { ...emailToMove, snoozedUntil: snoozeDate.toISOString() },
+              ...(prev[snoozedColumn.id] || []),
+            ],
+          }));
+        }
+      }
+
+      toast.success("Email snoozed successfully");
+    } catch (error) {
+      console.error("Failed to snooze email:", error);
+      // If API call fails, reload columns to restore correct state
+      await loadColumnEmails(emailToSnooze.sourceColumn, true);
       const snoozedColumn = columns.find((col) => {
         const mailbox = mailboxes.find((m) => m.id === col.id);
         return mailbox?.type === "snoozed";
       });
-
       if (snoozedColumn) {
-        console.log("Reloading SNOOZED column:", snoozedColumn.id);
         await loadColumnEmails(snoozedColumn.id, true);
       }
-    } catch (error) {
-      console.error("Failed to snooze email:", error);
     } finally {
       setIsSnoozeModalOpen(false);
       setEmailToSnooze(null);
