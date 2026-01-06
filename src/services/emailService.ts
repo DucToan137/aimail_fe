@@ -258,6 +258,9 @@ export const emailService = {
         params.append("includeSpamTrash", "true");
       }
 
+      // Add timestamp to prevent caching
+      params.append("_t", Date.now().toString());
+
       const response = await apiClient.get<ListThreadResponse>(
         `/mailboxes/${mailboxId}/emails?${params.toString()}`
       );

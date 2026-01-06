@@ -14,7 +14,13 @@ import {
   EmailFilters,
   type EmailFilterOptions,
 } from "@/components/dashboard/EmailFilters";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
@@ -355,12 +361,15 @@ export function InboxPage() {
   };
 
   const handleSelectEmail = async (emailId: string, mailboxId?: string) => {
+    let currentEmails = rawEmails;
+
     if (mailboxId && mailboxId !== selectedMailboxId) {
       setSelectedMailboxId(mailboxId);
       setIsLoadingEmails(true);
       navigate(`/mailbox/${mailboxId}/${emailId}`);
 
       try {
+        // Force fresh fetch with timestamp to avoid cache
         const response = await emailService.getEmailsByMailbox(
           mailboxId,
           50,
@@ -368,6 +377,7 @@ export function InboxPage() {
           undefined
         );
         setRawEmails(response.emails);
+        currentEmails = response.emails; // Use fresh data immediately
         setNextPageToken(response.nextPageToken);
         setHasMore(!!response.nextPageToken);
       } catch (error) {
@@ -383,7 +393,7 @@ export function InboxPage() {
     setSelectedEmailId(emailId);
     setShowEmailDetail(true);
 
-    const email = rawEmails.find((e) => e.id === emailId);
+    const email = currentEmails.find((e) => e.id === emailId);
     if (email && !email.messages) {
       try {
         console.log("Fetching email detail on select:", {
@@ -1182,6 +1192,17 @@ export function InboxPage() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setViewMode("kanban");
+                    setSelectedEmailId(null);
+                    setShowEmailDetail(false);
+                    navigate(`/mailbox/${selectedMailboxId}`);
+                  }}
+                >
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  Kanban View
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
@@ -1352,7 +1373,12 @@ export function InboxPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setViewMode("list")}
+                  onClick={() => {
+                    setViewMode("list");
+                    setSelectedEmailId(null);
+                    setShowEmailDetail(false);
+                    navigate(`/mailbox/${selectedMailboxId}`);
+                  }}
                   className="gap-2"
                 >
                   <List className="h-4 w-4" />
@@ -1381,6 +1407,12 @@ export function InboxPage() {
                 onOpenChange={(open) => !open && setSelectedEmailId(null)}
               >
                 <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
+                  <div className="hidden">
+                    <SheetTitle>Email Details</SheetTitle>
+                    <SheetDescription>
+                      View and manage email details
+                    </SheetDescription>
+                  </div>
                   <EmailDetail
                     email={selectedEmail}
                     mailboxId={selectedMailboxId}
@@ -1459,7 +1491,12 @@ export function InboxPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setViewMode("kanban")}
+                    onClick={() => {
+                      setViewMode("kanban");
+                      setSelectedEmailId(null);
+                      setShowEmailDetail(false);
+                      navigate(`/mailbox/${selectedMailboxId}`);
+                    }}
                     className="gap-2"
                   >
                     <LayoutGrid className="h-4 w-4" />
