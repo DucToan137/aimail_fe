@@ -141,24 +141,35 @@ export function EmailList({
   const formatSnoozeTime = (snoozedUntil: string) => {
     const date = new Date(snoozedUntil);
     const now = new Date();
-    const diff = date.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    if (hours < 1) {
-      return "Soon";
-    } else if (hours < 24) {
-      return `${hours}h`;
-    } else if (days === 1) {
-      return "Tomorrow";
-    } else if (days < 7) {
-      return date.toLocaleDateString("en-US", { weekday: "short" });
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
+    const timeStr = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    if (date.toDateString() === now.toDateString()) {
+      return `Today, ${timeStr}`;
     }
+
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${timeStr}`;
+    }
+
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 7 && diffDays > 0) {
+      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+      return `${dayName}, ${timeStr}`;
+    }
+
+    const dateStr = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return `${dateStr}, ${timeStr}`;
   };
 
   return (
@@ -343,7 +354,7 @@ export function EmailList({
                               {email.hasAttachments && (
                                 <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
                               )}
-                              {mailboxId === "SNOOZED" && email.snoozedUntil ? (
+                              {email.snoozedUntil ? (
                                 <>
                                   <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500" />
                                   <span className="text-[10px] sm:text-xs text-blue-600 whitespace-nowrap font-medium">
