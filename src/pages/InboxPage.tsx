@@ -144,6 +144,105 @@ export function InboxPage() {
       return "list";
     }
   });
+
+  const smartSnoozeTimerRef = useState<{
+    current: ReturnType<typeof setTimeout> | null;
+  }>({
+    current: null,
+  })[0];
+
+  const setupSmartSnoozeTimer = async () => {
+    if (smartSnoozeTimerRef.current) {
+      clearTimeout(smartSnoozeTimerRef.current);
+      smartSnoozeTimerRef.current = null;
+    }
+
+    try {
+      const { emails } = await emailService.getEmailsByMailbox("SNOOZED");
+
+      const now = Date.now();
+
+      const overdueEmail = emails.find(
+        (e) => e.snoozedUntil && new Date(e.snoozedUntil).getTime() <= now
+      );
+
+      if (overdueEmail) {
+        console.log(
+          `Smart Snooze: Waiting for email ${overdueEmail.id} to leave SNOOZED...`
+        );
+
+        smartSnoozeTimerRef.current = setTimeout(async () => {
+          try {
+            const checkString = await emailService.getEmailsByMailbox(
+              "SNOOZED"
+            );
+            const stillThere = checkString.emails.find(
+              (e) => e.id === overdueEmail.id
+            );
+
+            if (!stillThere) {
+              console.log("Smart Snooze: Email restored! Refreshing inbox.");
+
+              if (selectedMailboxId.toUpperCase() === "SNOOZED") {
+                setRawEmails((prev) =>
+                  prev.filter((e) => String(e.id) !== String(overdueEmail.id))
+                );
+              }
+
+              console.log("Smart Snooze: Triggering reload...");
+              await loadEmails(true);
+              setKanbanRefreshTrigger((prev) => prev + 1);
+              setupSmartSnoozeTimer();
+            } else {
+              setupSmartSnoozeTimer();
+            }
+          } catch (e) {
+            setupSmartSnoozeTimer();
+          }
+        }, 3000);
+        return;
+      }
+
+      const futureSnoozedEmails = emails.filter(
+        (e) => e.snoozedUntil && new Date(e.snoozedUntil).getTime() > now
+      );
+
+      if (futureSnoozedEmails.length === 0) return;
+
+      futureSnoozedEmails.sort(
+        (a, b) =>
+          new Date(a.snoozedUntil!).getTime() -
+          new Date(b.snoozedUntil!).getTime()
+      );
+
+      const nextEmail = futureSnoozedEmails[0];
+      const nextTime = new Date(nextEmail.snoozedUntil!).getTime();
+      let delay = nextTime - now;
+
+      delay += 2000;
+
+      console.log(
+        `Smart Snooze: Scheduled check in ${Math.round(
+          delay / 1000
+        )}s for email ${nextEmail.id}`
+      );
+
+      smartSnoozeTimerRef.current = setTimeout(() => {
+        setupSmartSnoozeTimer();
+      }, delay);
+    } catch (error) {
+      console.error("Smart Snooze: Failed to setup timer", error);
+    }
+  };
+
+  useEffect(() => {
+    setupSmartSnoozeTimer();
+    return () => {
+      if (smartSnoozeTimerRef.current) {
+        clearTimeout(smartSnoozeTimerRef.current);
+      }
+    };
+  }, [selectedMailboxId]);
   const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
   const [selectedLabelForColumn, setSelectedLabelForColumn] = useState("");
   const [isCreatingNewLabel, setIsCreatingNewLabel] = useState(false);
@@ -694,6 +793,9 @@ export function InboxPage() {
           timeStyle: "short",
         })}`
       );
+
+      // Update timer to catch this new snooze if it's the earliest
+      setupSmartSnoozeTimer();
     } catch (error) {
       console.error("Failed to snooze email:", error);
       toast.error(
