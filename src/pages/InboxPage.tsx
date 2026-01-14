@@ -609,7 +609,6 @@ export function InboxPage() {
       await Promise.all(
         emailsToDelete.map((email) => emailService.moveToTrash(email.threadId))
       );
-      toast.success(`Moved ${emailIds.length} email(s) to trash`);
     } catch (error) {
       console.error("Failed to move to trash:", error);
       toast.error("Failed to move to trash");
@@ -727,7 +726,6 @@ export function InboxPage() {
           })
         );
 
-        toast.success("Updated read status");
       } catch (error) {
         setRawEmails(
           rawEmails.map((email) =>
