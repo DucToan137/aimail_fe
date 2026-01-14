@@ -326,6 +326,21 @@ export function KanbanBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedColumnIds, columnMappings]);
 
+  // Expose loadKanbanColumnsFromAPI for external reload
+  useEffect(() => {
+    (
+      window as typeof window & { __kanbanReloadColumns?: () => Promise<void> }
+    ).__kanbanReloadColumns = loadKanbanColumnsFromAPI;
+    return () => {
+      delete (
+        window as typeof window & {
+          __kanbanReloadColumns?: () => Promise<void>;
+        }
+      ).__kanbanReloadColumns;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailboxes]);
+
   // Apply filters to raw emails whenever they change
   useEffect(() => {
     const filtered: Record<string, Email[]> = {};

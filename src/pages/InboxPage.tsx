@@ -1132,6 +1132,23 @@ export function InboxPage() {
       setIsAddColumnDialogOpen(false);
 
       toast.success("Column added to Kanban board");
+      
+      // Reload kanban columns from API to show the new column immediately
+      setTimeout(() => {
+        if (
+          (
+            window as typeof window & {
+              __kanbanReloadColumns?: () => Promise<void>;
+            }
+          ).__kanbanReloadColumns
+        ) {
+          (
+            window as typeof window & {
+              __kanbanReloadColumns?: () => Promise<void>;
+            }
+          ).__kanbanReloadColumns!();
+        }
+      }, 600);
     } catch (error) {
       console.error("Failed to add column:", error);
       const errorMessage =
