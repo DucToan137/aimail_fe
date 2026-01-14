@@ -1,5 +1,5 @@
 import type { Email } from '@/types/email';
-import { Reply, ReplyAll, Forward, Trash2, MailOpen, Star, Download, Mail, Inbox, Trash, ChevronDown, Clock, Sparkles } from 'lucide-react';
+import { Reply, ReplyAll, Forward, Trash2, MailOpen, Star, Download, Mail, Inbox, Trash, ChevronDown, Clock, Sparkles, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -298,6 +298,20 @@ export function EmailDetail({
         >
           <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="hidden sm:inline">AI Summary</span>
+        </Button>
+
+        <Button
+          onClick={() => {
+            const gmailUrl = `https://mail.google.com/mail/u/0/#all/${email.threadId}`;
+            window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+          }}
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          title="Open in Gmail"
+        >
+          <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Open in Gmail</span>
         </Button>
         
         <button
