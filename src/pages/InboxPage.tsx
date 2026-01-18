@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import type { Mailbox, Email } from "@/types/email";
 import { emailService } from "@/services/emailService";
 import { MailboxList } from "@/components/dashboard/MailboxList";
@@ -315,6 +316,260 @@ export function InboxPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMailboxId, viewMode]);
+
+  // Keyboard shortcuts navigation helpers
+  const navigateToNextEmail = () => {
+    if (emails.length === 0) return;
+    
+    const currentIndex = emails.findIndex((e) => e.id === selectedEmailId);
+    if (currentIndex === -1) {
+      // No selection, select first email
+      handleSelectEmail(emails[0].id);
+    } else if (currentIndex < emails.length - 1) {
+      // Select next email
+      handleSelectEmail(emails[currentIndex + 1].id);
+    }
+  };
+
+  const navigateToPreviousEmail = () => {
+    if (emails.length === 0) return;
+    
+    const currentIndex = emails.findIndex((e) => e.id === selectedEmailId);
+    if (currentIndex > 0) {
+      handleSelectEmail(emails[currentIndex - 1].id);
+    }
+  };
+
+  const toggleEmailSelection = () => {
+    if (!selectedEmailId) return;
+    
+    const checkbox = document.querySelector(
+      `input[type="checkbox"][data-email-id="${selectedEmailId}"]`
+    ) as HTMLInputElement;
+    
+    if (checkbox) {
+      checkbox.click();
+    }
+  };
+
+  const focusSearch = () => {
+    const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+    }
+  };
+
+  // Keyboard shortcuts configuration
+  const keyboardShortcuts = useMemo(
+    () => [
+      // Navigation
+      {
+        key: "j",
+        description: "Next email",
+        handler: navigateToNextEmail,
+      },
+      {
+        key: "k",
+        description: "Previous email",
+        handler: navigateToPreviousEmail,
+      },
+      {
+        key: "ArrowDown",
+        description: "Next email",
+        handler: navigateToNextEmail,
+      },
+      {
+        key: "ArrowUp",
+        description: "Previous email",
+        handler: navigateToPreviousEmail,
+      },
+      // Open/Close
+      {
+        key: "Enter",
+        description: "Open selected email",
+        handler: () => {
+          if (selectedEmailId && !showEmailDetail) {
+            setShowEmailDetail(true);
+          }
+        },
+      },
+      {
+        key: "o",
+        description: "Open selected email",
+        handler: () => {
+          if (selectedEmailId && !showEmailDetail) {
+            setShowEmailDetail(true);
+          }
+        },
+      },
+      {
+        key: "Escape",
+        description: "Close email detail / Close compose",
+        handler: () => {
+          if (isComposeOpen) {
+            setIsComposeOpen(false);
+          } else if (showEmailDetail) {
+            setShowEmailDetail(false);
+            setSelectedEmailId(null);
+            navigate(`/mailbox/${selectedMailboxId}`);
+          }
+        },
+        preventDefault: true,
+      },
+      // Actions
+      {
+        key: "c",
+        description: "Compose new email",
+        handler: () => {
+          setComposeDefaults({});
+          setIsComposeOpen(true);
+        },
+      },
+      {
+        key: "r",
+        description: "Reply",
+        handler: () => {
+          if (selectedEmailId && showEmailDetail) {
+            handleReply();
+          }
+        },
+      },
+      {
+        key: "a",
+        description: "Reply all",
+        handler: () => {
+          if (selectedEmailId && showEmailDetail) {
+            handleReplyAll();
+          }
+        },
+      },
+      {
+        key: "f",
+        description: "Forward",
+        handler: () => {
+          if (selectedEmailId && showEmailDetail) {
+            handleForward();
+          }
+        },
+      },
+      {
+        key: "e",
+        description: "Archive",
+        handler: async () => {
+          if (selectedEmailId) {
+            try {
+              await emailService.archiveEmail(
+                emails.find((e) => e.id === selectedEmailId)?.threadId || selectedEmailId
+              );
+              setRawEmails((prev) => prev.filter((e) => e.id !== selectedEmailId));
+              setSelectedEmailId(null);
+              setShowEmailDetail(false);
+              navigate(`/mailbox/${selectedMailboxId}`);
+              toast.success("Email archived");
+            } catch (error) {
+              console.error("Failed to archive:", error);
+              toast.error("Failed to archive email");
+            }
+          }
+        },
+      },
+      {
+        key: "#",
+        description: "Delete",
+        handler: () => {
+          if (selectedEmailId) {
+            handleDelete([selectedEmailId]);
+          }
+        },
+      },
+      {
+        key: "Delete",
+        description: "Delete",
+        handler: () => {
+          if (selectedEmailId) {
+            handleDelete([selectedEmailId]);
+          }
+        },
+      },
+      {
+        key: "s",
+        description: "Star/Unstar",
+        handler: () => {
+          if (selectedEmailId) {
+            handleToggleStar(selectedEmailId);
+          }
+        },
+      },
+      {
+        key: "u",
+        description: "Mark as unread",
+        handler: () => {
+          if (selectedEmailId) {
+            handleToggleRead([selectedEmailId]);
+          }
+        },
+      },
+      {
+        key: "x",
+        description: "Select/Deselect email",
+        handler: toggleEmailSelection,
+      },
+      // View
+      {
+        key: "v",
+        description: "Toggle view mode (List/Kanban)",
+        handler: () => {
+          setViewMode((prev) => (prev === "list" ? "kanban" : "list"));
+        },
+      },
+      // Search
+      {
+        key: "/",
+        description: "Focus search",
+        handler: focusSearch,
+      },
+      // Help
+      {
+        key: "?",
+        shiftKey: true,
+        description: "Show keyboard shortcuts",
+        handler: () => {
+          toast.info(
+            "Keyboard Shortcuts",
+            {
+              description: (
+                <div className="text-xs space-y-1 mt-2">
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd> Navigate</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd> Close</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd> Compose</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd> Reply All | <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd> Forward</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd> Archive | <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark Unread | <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd> Search</div>
+                </div>
+              ),
+              duration: 8000,
+            }
+          );
+        },
+      },
+    ],
+    [
+      selectedEmailId,
+      showEmailDetail,
+      emails,
+      isComposeOpen,
+      selectedMailboxId,
+      viewMode,
+    ]
+  );
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts({
+    enabled: !isComposeOpen || showEmailDetail,
+    shortcuts: keyboardShortcuts,
+  });
 
   const prefetchEmailDetails = async (
     emailsToPrefetch: Email[],
@@ -1591,6 +1846,34 @@ export function InboxPage() {
                   </DialogContent>
                 </Dialog>
                 <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    toast.info(
+                      "Keyboard Shortcuts",
+                      {
+                        description: (
+                          <div className="text-xs space-y-1 mt-2">
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd> Navigate</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd> Close</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd> Compose</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd> Reply All | <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd> Forward</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd> Archive | <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark Unread | <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select</div>
+                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd> Search</div>
+                          </div>
+                        ),
+                        duration: 8000,
+                      }
+                    );
+                  }}
+                  className="gap-2"
+                  title="Keyboard shortcuts (Press ? for help)"
+                >
+                  <span className="text-lg font-semibold">?</span>
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
@@ -1708,6 +1991,34 @@ export function InboxPage() {
                       }}
                     />
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      toast.info(
+                        "Keyboard Shortcuts",
+                        {
+                          description: (
+                            <div className="text-xs space-y-1 mt-2">
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd> Navigate</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd> Close</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd> Compose</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd> Reply All | <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd> Forward</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd> Archive | <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark Unread | <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select</div>
+                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd> Search</div>
+                            </div>
+                          ),
+                          duration: 8000,
+                        }
+                      );
+                    }}
+                    className="gap-2"
+                    title="Keyboard shortcuts (Press ? for help)"
+                  >
+                    <span className="text-lg font-semibold">?</span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
