@@ -358,9 +358,10 @@ export function InboxPage() {
                   return {
                     ...detail,
                     preview: e.preview || detail.preview,
-                    // Always use detail.isRead from labelIds (source of truth from Gmail)
-                    isRead: detail.isRead,
-                    isStarred: detail.isStarred,
+                    // Preserve current isRead/isStarred state from UI to avoid conflicts
+                    // Only update if current email doesn't have messages loaded yet
+                    isRead: e.messages ? e.isRead : detail.isRead,
+                    isStarred: e.messages ? e.isStarred : detail.isStarred,
                     workflowEmailId: e.workflowEmailId,
                     snoozedUntil: e.snoozedUntil,
                   };
@@ -531,10 +532,32 @@ export function InboxPage() {
     }
 
     if (email && !email.isRead) {
-      await handleToggleRead([emailId]);
-      // Trigger Kanban refresh to update read status in Kanban view
-      if (viewMode === "kanban") {
-        setKanbanRefreshTrigger((prev) => prev + 1);
+      try {
+        // Mark as read in Gmail
+        await emailService.markAsRead(email.threadId);
+        
+        // Update local state
+        setRawEmails((prev) =>
+          prev.map((e) =>
+            e.id === emailId ? { ...e, isRead: true } : e
+          )
+        );
+        
+        // Update workflow DB if workflowEmailId exists
+        if (email.workflowEmailId) {
+          try {
+            await emailService.updateEmailRead(email.workflowEmailId, true);
+          } catch (error) {
+            console.warn("Failed to sync read status with workflow DB:", error);
+          }
+        }
+        
+        // Trigger Kanban refresh to update read status in Kanban view
+        if (viewMode === "kanban") {
+          setKanbanRefreshTrigger((prev) => prev + 1);
+        }
+      } catch (error) {
+        console.error("Failed to mark email as read:", error);
       }
     }
   };
@@ -673,7 +696,11 @@ export function InboxPage() {
   const handleToggleRead = async (emailIds: string[]) => {
     try {
       const emailsToUpdate = rawEmails.filter((e) => emailIds.includes(e.id));
+      
+      // Save original read states before toggle
+      const originalStates = new Map(emailsToUpdate.map(e => [e.id, e.isRead]));
 
+      // Optimistically update UI
       setRawEmails(
         rawEmails.map((email) =>
           emailIds.includes(email.id)
@@ -683,10 +710,12 @@ export function InboxPage() {
       );
 
       try {
+        // Call Gmail API with original states (before toggle)
         await Promise.all(
           emailsToUpdate.map((email) => {
             if (email.threadId) {
-              return email.isRead
+              const wasRead = originalStates.get(email.id);
+              return wasRead
                 ? emailService.markAsUnread(email.threadId)
                 : emailService.markAsRead(email.threadId);
             }
@@ -694,6 +723,7 @@ export function InboxPage() {
           })
         );
 
+        // Update workflow DB
         await Promise.all(
           emailsToUpdate.map(async (email) => {
             try {
@@ -716,7 +746,8 @@ export function InboxPage() {
                 );
               }
 
-              await emailService.updateEmailRead(workflowId, !email.isRead);
+              const wasRead = originalStates.get(email.id);
+              await emailService.updateEmailRead(workflowId, !wasRead);
             } catch (error) {
               console.warn(
                 "Failed to sync read status with workflow DB:",
@@ -727,15 +758,22 @@ export function InboxPage() {
         );
 
       } catch (error) {
+        // Revert on error
         setRawEmails(
           rawEmails.map((email) =>
             emailIds.includes(email.id)
-              ? { ...email, isRead: email.isRead }
+              ? { ...email, isRead: originalStates.get(email.id) ?? email.isRead }
               : email
           )
         );
         throw error;
       }
+
+      // Trigger Kanban refresh if in kanban view
+      if (viewMode === "kanban") {
+        setKanbanRefreshTrigger((prev) => prev + 1);
+      }
+
     } catch (error) {
       console.error("Failed to toggle read status:", error);
       toast.error("Failed to update read status");
@@ -1066,9 +1104,11 @@ export function InboxPage() {
   const handleAddColumn = async () => {
     try {
       let labelId = selectedLabelForColumn;
-      let systemLabel = !isCreatingNewLabel; // true for existing label, false for new label
+      let systemLabel: boolean;
+      let labelName: string;
 
       if (isCreatingNewLabel) {
+        // Create New: systemLabel = false
         if (!newLabelName.trim()) {
           toast.error("Please enter a label name");
           return;
@@ -1083,19 +1123,34 @@ export function InboxPage() {
           return;
         }
 
-        const newLabel = await emailService.createLabel(newLabelName.trim());
+        systemLabel = false; // Create New -> systemLabel: false
+        labelName = newLabelName.trim();
+        
+        // Call API to create label with systemLabel = false
+        const newLabel = await emailService.createLabel(labelName, systemLabel);
         labelId = newLabel.id;
-        systemLabel = false; // New labels are always user-created
 
         await loadMailboxes();
 
-        toast.success(`Label "${newLabelName}" created successfully`);
+        toast.success(`Label "${labelName}" created successfully`);
       } else {
+        // Existing Label: systemLabel = true
         if (!labelId) {
           toast.error("Please select a label");
           return;
         }
-        systemLabel = true; // Existing labels are system labels
+        
+        const selectedLabel = mailboxes.find((m) => m.id === labelId);
+        if (!selectedLabel) {
+          toast.error("Label not found");
+          return;
+        }
+        
+        systemLabel = true; // Existing Label -> systemLabel: true
+        labelName = selectedLabel.name;
+        
+        // Call API to create kanban column with systemLabel = true
+        await emailService.createLabel(labelName, systemLabel);
       }
 
       // Add column to Kanban board

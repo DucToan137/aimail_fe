@@ -547,9 +547,9 @@ export const emailService = {
     });
   },
 
-  async createLabel(name: string): Promise<LabelResponse> {
+  async createLabel(name: string, systemLabel: boolean = false): Promise<LabelResponse> {
     try {
-      return await apiClient.post<LabelResponse>("/mailboxes", { name });
+      return await apiClient.post<LabelResponse>("/mailboxes", { name, systemLabel });
     } catch (error) {
       console.error("Failed to create label:", error);
       throw error;
