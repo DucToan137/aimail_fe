@@ -100,6 +100,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // Multi-tab logout sync
+  useEffect(() => {
+    // Listen for logout events from other tabs
+    const cleanup = cookieManager.onLogoutEvent(() => {
+      console.log('Logout event received from another tab');
+      
+      // Clear local state
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Logged out from another tab',
+      });
+      
+      // Clear tokens in this tab
+      cookieManager.clearAllTokens();
+      
+      // Optionally redirect to login
+      if (window.location.pathname !== '/login' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/login';
+      }
+    });
+
+    return cleanup;
+  }, []);
+
   useEffect(() => {
     const handleLogoutEvent = () => {
       setState({
@@ -120,6 +146,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.login(credentials);
       cookieManager.setTokens(response.accessToken, response.refreshToken);
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
 
       const user = authService.getUserFromToken(response.accessToken, response.email);
 
@@ -147,6 +176,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.register(credentials);
       cookieManager.setTokens(response.accessToken, response.refreshToken);
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
 
       const user = authService.getUserFromToken(response.accessToken, response.email);
 
@@ -185,6 +217,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         hasRefreshToken: !!response.refreshToken,
         email: response.email
       });
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
 
       console.log('AuthContext - Setting tokens in cookies');
       cookieManager.setTokens(response.accessToken, response.refreshToken);
@@ -216,7 +251,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
 
+    // Clear tokens
     cookieManager.clearAllTokens();
+    
+    // Trigger logout event for other tabs
+    cookieManager.triggerLogoutEvent();
+    
     setState({
       user: null,
       isAuthenticated: false,
@@ -251,6 +291,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const setAuthState = useCallback((accessToken: string, refreshToken: string, email: string) => {
     try {
       cookieManager.setTokens(accessToken, refreshToken);
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
+      
       const user = authService.getUserFromToken(accessToken, email);
       setState({
         user,
