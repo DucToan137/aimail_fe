@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import * as LucideIcons from "lucide-react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
+import { EmailFilters, type EmailFilterOptions } from "./EmailFilters";
 
 interface KanbanColumn {
   id: string;
@@ -28,6 +29,9 @@ interface KanbanColumnProps {
   onRemove?: (columnId: string) => void;
   canRemove?: boolean;
   onRename?: (columnId: string, newName: string) => Promise<void>;
+  filters?: EmailFilterOptions;
+  onFiltersChange?: (filters: EmailFilterOptions) => void;
+  onFilterClear?: () => void;
 }
 
 export function KanbanColumn({
@@ -45,6 +49,9 @@ export function KanbanColumn({
   onRemove,
   canRemove = false,
   onRename,
+  filters,
+  onFiltersChange,
+  onFilterClear,
 }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -103,7 +110,7 @@ export function KanbanColumn({
     <div
       className={cn(
         "flex flex-col flex-1 rounded-xl border bg-background/60 backdrop-blur-sm transition-all duration-300 h-full max-w-sm shadow-sm hover:shadow-md",
-        isDragOver && "border-primary ring-1 ring-primary/20 bg-primary/5"
+        isDragOver && "border-primary ring-1 ring-primary/20 bg-primary/5",
       )}
       style={{ minWidth: "calc((100% - 48px) / 3)" }}
       onDragOver={handleDragOver}
@@ -115,7 +122,7 @@ export function KanbanColumn({
         <div
           className={cn(
             "p-2 rounded-lg bg-background shadow-sm border",
-            isSnoozed ? "text-orange-500" : "text-primary"
+            isSnoozed ? "text-orange-500" : "text-primary",
           )}
         >
           <IconComponent className="h-4 w-4" />
@@ -136,7 +143,8 @@ export function KanbanColumn({
           <h3
             className={cn(
               "font-semibold text-base flex-1 truncate text-foreground/90",
-              canRename && "cursor-pointer hover:text-primary transition-colors"
+              canRename &&
+                "cursor-pointer hover:text-primary transition-colors",
             )}
             onClick={() => {
               if (canRename) {
@@ -150,9 +158,21 @@ export function KanbanColumn({
           </h3>
         )}
 
-        <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+        <div className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-muted text-xs font-medium text-muted-foreground mr-auto ml-2">
           {emails.length}
         </div>
+
+        {/* Filters */}
+        {filters && onFiltersChange && !isSnoozed && (
+          <div className="mr-1">
+            <EmailFilters
+              filters={filters}
+              onFiltersChange={onFiltersChange}
+              onClear={onFilterClear}
+              className="scale-90 origin-right"
+            />
+          </div>
+        )}
 
         {canRemove && onRemove && (
           <Button

@@ -45,7 +45,7 @@ import { Menu, ArrowLeft, LogOut, LayoutGrid, List, Plus } from "lucide-react";
 // Helper function to apply filters and sorting to emails
 function applyFiltersAndSort(
   emails: Email[],
-  filters: EmailFilterOptions
+  filters: EmailFilterOptions,
 ): Email[] {
   let filtered = [...emails];
 
@@ -67,7 +67,7 @@ function applyFiltersAndSort(
       // Check if email has attachments from messages if available
       if (email.messages && email.messages.length > 0) {
         return email.messages.some(
-          (msg) => msg.attachments && msg.attachments.length > 0
+          (msg) => msg.attachments && msg.attachments.length > 0,
         );
       }
       return email.hasAttachments;
@@ -121,10 +121,10 @@ export function InboxPage() {
   // Display emails with filter/sort applied
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedMailboxId, setSelectedMailboxId] = useState<string>(
-    urlMailboxId || "INBOX"
+    urlMailboxId || "INBOX",
   );
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(
-    urlEmailId || null
+    urlEmailId || null,
   );
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [composeDefaults, setComposeDefaults] = useState<{
@@ -164,21 +164,20 @@ export function InboxPage() {
       const now = Date.now();
 
       const overdueEmail = emails.find(
-        (e) => e.snoozedUntil && new Date(e.snoozedUntil).getTime() <= now
+        (e) => e.snoozedUntil && new Date(e.snoozedUntil).getTime() <= now,
       );
 
       if (overdueEmail) {
         console.log(
-          `Smart Snooze: Waiting for email ${overdueEmail.id} to leave SNOOZED...`
+          `Smart Snooze: Waiting for email ${overdueEmail.id} to leave SNOOZED...`,
         );
 
         smartSnoozeTimerRef.current = setTimeout(async () => {
           try {
-            const checkString = await emailService.getEmailsByMailbox(
-              "SNOOZED"
-            );
+            const checkString =
+              await emailService.getEmailsByMailbox("SNOOZED");
             const stillThere = checkString.emails.find(
-              (e) => e.id === overdueEmail.id
+              (e) => e.id === overdueEmail.id,
             );
 
             if (!stillThere) {
@@ -186,7 +185,7 @@ export function InboxPage() {
 
               if (selectedMailboxId.toUpperCase() === "SNOOZED") {
                 setRawEmails((prev) =>
-                  prev.filter((e) => String(e.id) !== String(overdueEmail.id))
+                  prev.filter((e) => String(e.id) !== String(overdueEmail.id)),
                 );
               }
 
@@ -205,7 +204,7 @@ export function InboxPage() {
       }
 
       const futureSnoozedEmails = emails.filter(
-        (e) => e.snoozedUntil && new Date(e.snoozedUntil).getTime() > now
+        (e) => e.snoozedUntil && new Date(e.snoozedUntil).getTime() > now,
       );
 
       if (futureSnoozedEmails.length === 0) return;
@@ -213,7 +212,7 @@ export function InboxPage() {
       futureSnoozedEmails.sort(
         (a, b) =>
           new Date(a.snoozedUntil!).getTime() -
-          new Date(b.snoozedUntil!).getTime()
+          new Date(b.snoozedUntil!).getTime(),
       );
 
       const nextEmail = futureSnoozedEmails[0];
@@ -224,8 +223,8 @@ export function InboxPage() {
 
       console.log(
         `Smart Snooze: Scheduled check in ${Math.round(
-          delay / 1000
-        )}s for email ${nextEmail.id}`
+          delay / 1000,
+        )}s for email ${nextEmail.id}`,
       );
 
       smartSnoozeTimerRef.current = setTimeout(() => {
@@ -252,7 +251,7 @@ export function InboxPage() {
   const [isLoadingMailboxes, setIsLoadingMailboxes] = useState(true);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [hasMore, setHasMore] = useState(false);
   const [kanbanRefreshTrigger, setKanbanRefreshTrigger] = useState(0);
@@ -320,7 +319,7 @@ export function InboxPage() {
   // Keyboard shortcuts navigation helpers
   const navigateToNextEmail = () => {
     if (emails.length === 0) return;
-    
+
     const currentIndex = emails.findIndex((e) => e.id === selectedEmailId);
     if (currentIndex === -1) {
       // No selection, select first email
@@ -333,7 +332,7 @@ export function InboxPage() {
 
   const navigateToPreviousEmail = () => {
     if (emails.length === 0) return;
-    
+
     const currentIndex = emails.findIndex((e) => e.id === selectedEmailId);
     if (currentIndex > 0) {
       handleSelectEmail(emails[currentIndex - 1].id);
@@ -342,18 +341,20 @@ export function InboxPage() {
 
   const toggleEmailSelection = () => {
     if (!selectedEmailId) return;
-    
+
     const checkbox = document.querySelector(
-      `input[type="checkbox"][data-email-id="${selectedEmailId}"]`
+      `input[type="checkbox"][data-email-id="${selectedEmailId}"]`,
     ) as HTMLInputElement;
-    
+
     if (checkbox) {
       checkbox.click();
     }
   };
 
   const focusSearch = () => {
-    const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+    const searchInput = document.querySelector(
+      'input[placeholder*="Search"]',
+    ) as HTMLInputElement;
     if (searchInput) {
       searchInput.focus();
     }
@@ -459,9 +460,12 @@ export function InboxPage() {
           if (selectedEmailId) {
             try {
               await emailService.archiveEmail(
-                emails.find((e) => e.id === selectedEmailId)?.threadId || selectedEmailId
+                emails.find((e) => e.id === selectedEmailId)?.threadId ||
+                  selectedEmailId,
               );
-              setRawEmails((prev) => prev.filter((e) => e.id !== selectedEmailId));
+              setRawEmails((prev) =>
+                prev.filter((e) => e.id !== selectedEmailId),
+              );
               setSelectedEmailId(null);
               setShowEmailDetail(false);
               navigate(`/mailbox/${selectedMailboxId}`);
@@ -534,24 +538,53 @@ export function InboxPage() {
         shiftKey: true,
         description: "Show keyboard shortcuts",
         handler: () => {
-          toast.info(
-            "Keyboard Shortcuts",
-            {
-              description: (
-                <div className="text-xs space-y-1 mt-2">
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd> Navigate</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd> Close</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd> Compose</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd> Reply All | <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd> Forward</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd> Archive | <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark Unread | <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd> Search</div>
+          toast.info("Keyboard Shortcuts", {
+            description: (
+              <div className="text-xs space-y-1 mt-2">
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or{" "}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd>{" "}
+                  Navigate
                 </div>
-              ),
-              duration: 8000,
-            }
-          );
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or{" "}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open
+                </div>
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd>{" "}
+                  Close
+                </div>
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd>{" "}
+                  Compose
+                </div>
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply
+                  | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd>{" "}
+                  Reply All |{" "}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd>{" "}
+                  Forward
+                </div>
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd>{" "}
+                  Archive |{" "}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete
+                  | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star
+                </div>
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark
+                  Unread |{" "}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select
+                </div>
+                <div>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle
+                  View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd>{" "}
+                  Search
+                </div>
+              </div>
+            ),
+            duration: 8000,
+          });
         },
       },
     ],
@@ -562,7 +595,7 @@ export function InboxPage() {
       isComposeOpen,
       selectedMailboxId,
       viewMode,
-    ]
+    ],
   );
 
   // Enable keyboard shortcuts
@@ -573,7 +606,7 @@ export function InboxPage() {
 
   const prefetchEmailDetails = async (
     emailsToPrefetch: Email[],
-    mailboxIdForPrefetch: string
+    mailboxIdForPrefetch: string,
   ) => {
     const concurrency = 4;
     let index = 0;
@@ -601,7 +634,7 @@ export function InboxPage() {
           });
           const detail = await emailService.getEmailById(
             current.threadId,
-            mailboxIdForPrefetch
+            mailboxIdForPrefetch,
           );
           if (detail) {
             setRawEmails((prev) => {
@@ -635,7 +668,7 @@ export function InboxPage() {
 
     const workers = Array.from(
       { length: Math.min(concurrency, emailsToPrefetch.length) },
-      () => worker()
+      () => worker(),
     );
     await Promise.all(workers);
   };
@@ -665,7 +698,7 @@ export function InboxPage() {
         selectedMailboxId,
         50,
         pageToken,
-        undefined
+        undefined,
       );
 
       console.log(`Loaded emails for ${selectedMailboxId}:`, response.emails);
@@ -677,7 +710,7 @@ export function InboxPage() {
       }
 
       prefetchEmailDetails(response.emails, selectedMailboxId).catch((err) =>
-        console.error("Background prefetch error", err)
+        console.error("Background prefetch error", err),
       );
 
       setNextPageToken(response.nextPageToken);
@@ -691,7 +724,7 @@ export function InboxPage() {
       const elapsedTime = Date.now() - startTime;
       if (elapsedTime < minLoadingTime) {
         await new Promise((resolve) =>
-          setTimeout(resolve, minLoadingTime - elapsedTime)
+          setTimeout(resolve, minLoadingTime - elapsedTime),
         );
       }
     } catch (error) {
@@ -729,7 +762,7 @@ export function InboxPage() {
           mailboxId,
           50,
           undefined,
-          undefined
+          undefined,
         );
         setRawEmails(response.emails);
         currentEmails = response.emails; // Use fresh data immediately
@@ -758,7 +791,7 @@ export function InboxPage() {
         });
         const detail = await emailService.getEmailById(
           email.threadId,
-          mailboxId || selectedMailboxId
+          mailboxId || selectedMailboxId,
         );
         if (detail) {
           setRawEmails((prev) =>
@@ -778,7 +811,7 @@ export function InboxPage() {
                 };
               }
               return e;
-            })
+            }),
           );
         }
       } catch (error) {
@@ -790,14 +823,12 @@ export function InboxPage() {
       try {
         // Mark as read in Gmail
         await emailService.markAsRead(email.threadId);
-        
+
         // Update local state
         setRawEmails((prev) =>
-          prev.map((e) =>
-            e.id === emailId ? { ...e, isRead: true } : e
-          )
+          prev.map((e) => (e.id === emailId ? { ...e, isRead: true } : e)),
         );
-        
+
         // Update workflow DB if workflowEmailId exists
         if (email.workflowEmailId) {
           try {
@@ -806,7 +837,7 @@ export function InboxPage() {
             console.warn("Failed to sync read status with workflow DB:", error);
           }
         }
-        
+
         // Trigger Kanban refresh to update read status in Kanban view
         if (viewMode === "kanban") {
           setKanbanRefreshTrigger((prev) => prev + 1);
@@ -826,8 +857,8 @@ export function InboxPage() {
 
       setRawEmails(
         rawEmails.map((e) =>
-          e.id === emailId ? { ...e, isStarred: newStarred } : e
-        )
+          e.id === emailId ? { ...e, isStarred: newStarred } : e,
+        ),
       );
 
       try {
@@ -839,15 +870,15 @@ export function InboxPage() {
           if (!workflowId) {
             const newEmail = await emailService.snoozeEmailByThreadId(
               email.threadId,
-              new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)
+              new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
             );
             workflowId = newEmail.id;
             await emailService.updateEmailStatus(workflowId, "INBOX");
 
             setRawEmails((prev) =>
               prev.map((e) =>
-                e.id === emailId ? { ...e, workflowEmailId: workflowId } : e
-              )
+                e.id === emailId ? { ...e, workflowEmailId: workflowId } : e,
+              ),
             );
           }
 
@@ -860,8 +891,8 @@ export function InboxPage() {
       } catch (error) {
         setRawEmails(
           rawEmails.map((e) =>
-            e.id === emailId ? { ...e, isStarred: email.isStarred } : e
-          )
+            e.id === emailId ? { ...e, isStarred: email.isStarred } : e,
+          ),
         );
         throw error;
       }
@@ -875,7 +906,7 @@ export function InboxPage() {
     const emailsToDelete = rawEmails.filter((e) => emailIds.includes(e.id));
 
     setRawEmails((prev) =>
-      prev.filter((email) => !emailIds.includes(email.id))
+      prev.filter((email) => !emailIds.includes(email.id)),
     );
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
@@ -885,7 +916,7 @@ export function InboxPage() {
 
     try {
       await Promise.all(
-        emailsToDelete.map((email) => emailService.moveToTrash(email.threadId))
+        emailsToDelete.map((email) => emailService.moveToTrash(email.threadId)),
       );
     } catch (error) {
       console.error("Failed to move to trash:", error);
@@ -898,7 +929,7 @@ export function InboxPage() {
     const emailsToDelete = rawEmails.filter((e) => emailIds.includes(e.id));
 
     setRawEmails((prev) =>
-      prev.filter((email) => !emailIds.includes(email.id))
+      prev.filter((email) => !emailIds.includes(email.id)),
     );
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
@@ -908,7 +939,7 @@ export function InboxPage() {
 
     try {
       await Promise.all(
-        emailsToDelete.map((email) => emailService.deleteEmail(email.threadId))
+        emailsToDelete.map((email) => emailService.deleteEmail(email.threadId)),
       );
       toast.success(`Permanently deleted ${emailIds.length} email(s)`);
     } catch (error) {
@@ -922,7 +953,7 @@ export function InboxPage() {
     const emailsToMove = rawEmails.filter((e) => emailIds.includes(e.id));
 
     setRawEmails((prev) =>
-      prev.filter((email) => !emailIds.includes(email.id))
+      prev.filter((email) => !emailIds.includes(email.id)),
     );
     if (emailIds.includes(selectedEmailId || "")) {
       setSelectedEmailId(null);
@@ -937,8 +968,8 @@ export function InboxPage() {
             threadId: email.threadId,
             addLabelIds: ["INBOX"],
             removeLabelIds: ["TRASH"],
-          })
-        )
+          }),
+        ),
       );
       toast.success(`Moved ${emailIds.length} email(s) to inbox`);
     } catch (error) {
@@ -951,17 +982,19 @@ export function InboxPage() {
   const handleToggleRead = async (emailIds: string[]) => {
     try {
       const emailsToUpdate = rawEmails.filter((e) => emailIds.includes(e.id));
-      
+
       // Save original read states before toggle
-      const originalStates = new Map(emailsToUpdate.map(e => [e.id, e.isRead]));
+      const originalStates = new Map(
+        emailsToUpdate.map((e) => [e.id, e.isRead]),
+      );
 
       // Optimistically update UI
       setRawEmails(
         rawEmails.map((email) =>
           emailIds.includes(email.id)
             ? { ...email, isRead: !email.isRead }
-            : email
-        )
+            : email,
+        ),
       );
 
       try {
@@ -975,7 +1008,7 @@ export function InboxPage() {
                 : emailService.markAsRead(email.threadId);
             }
             return Promise.resolve();
-          })
+          }),
         );
 
         // Update workflow DB
@@ -987,7 +1020,7 @@ export function InboxPage() {
               if (!workflowId) {
                 const newEmail = await emailService.snoozeEmailByThreadId(
                   email.threadId,
-                  new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000)
+                  new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
                 );
                 workflowId = newEmail.id;
                 await emailService.updateEmailStatus(workflowId, "INBOX");
@@ -996,8 +1029,8 @@ export function InboxPage() {
                   prev.map((e) =>
                     e.id === email.id
                       ? { ...e, workflowEmailId: workflowId }
-                      : e
-                  )
+                      : e,
+                  ),
                 );
               }
 
@@ -1006,20 +1039,22 @@ export function InboxPage() {
             } catch (error) {
               console.warn(
                 "Failed to sync read status with workflow DB:",
-                error
+                error,
               );
             }
-          })
+          }),
         );
-
       } catch (error) {
         // Revert on error
         setRawEmails(
           rawEmails.map((email) =>
             emailIds.includes(email.id)
-              ? { ...email, isRead: originalStates.get(email.id) ?? email.isRead }
-              : email
-          )
+              ? {
+                  ...email,
+                  isRead: originalStates.get(email.id) ?? email.isRead,
+                }
+              : email,
+          ),
         );
         throw error;
       }
@@ -1028,7 +1063,6 @@ export function InboxPage() {
       if (viewMode === "kanban") {
         setKanbanRefreshTrigger((prev) => prev + 1);
       }
-
     } catch (error) {
       console.error("Failed to toggle read status:", error);
       toast.error("Failed to update read status");
@@ -1039,14 +1073,14 @@ export function InboxPage() {
     emailId: string,
     snoozeDate: Date,
     threadId?: string,
-    sourceColumn?: string
+    sourceColumn?: string,
   ) => {
     try {
       let targetThreadId = threadId;
 
       if (!targetThreadId) {
         const email = rawEmails.find(
-          (e) => e.id === emailId || e.threadId === emailId
+          (e) => e.id === emailId || e.threadId === emailId,
         );
         if (!email) {
           console.error("Email not found for snooze");
@@ -1086,7 +1120,7 @@ export function InboxPage() {
         `Email snoozed until ${snoozeDate.toLocaleString("vi-VN", {
           dateStyle: "medium",
           timeStyle: "short",
-        })}`
+        })}`,
       );
 
       // Update timer to catch this new snooze if it's the earliest
@@ -1094,7 +1128,7 @@ export function InboxPage() {
     } catch (error) {
       console.error("Failed to snooze email:", error);
       toast.error(
-        "Failed to snooze email. Please try opening the email first."
+        "Failed to snooze email. Please try opening the email first.",
       );
     }
   };
@@ -1105,7 +1139,7 @@ export function InboxPage() {
 
     try {
       const email = rawEmails.find(
-        (e) => e.workflowEmailId === workflowEmailId
+        (e) => e.workflowEmailId === workflowEmailId,
       );
       // console.log('Found email to remove:', email);
 
@@ -1128,7 +1162,7 @@ export function InboxPage() {
 
       if (email) {
         setRawEmails((prev) =>
-          prev.filter((e) => e.workflowEmailId !== workflowEmailId)
+          prev.filter((e) => e.workflowEmailId !== workflowEmailId),
         );
 
         if (selectedEmailId === email.id) {
@@ -1172,7 +1206,7 @@ export function InboxPage() {
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
-        }
+        },
       )}, ${email.from.name} <${
         email.from.email
       }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
@@ -1205,7 +1239,7 @@ export function InboxPage() {
           hour: "numeric",
           minute: "2-digit",
           hour12: true,
-        }
+        },
       )}, ${email.from.name} <${
         email.from.email
       }> wrote:\n\n> ${email.body.replace(/\n/g, "\n> ")}`;
@@ -1296,7 +1330,7 @@ export function InboxPage() {
     emailId: string,
     targetMailboxId: string,
     sourceMailboxId: string,
-    threadId?: string
+    threadId?: string,
   ) => {
     // Try to find email in rawEmails first, otherwise use provided threadId
     const email = rawEmails.find((e) => e.id === emailId);
@@ -1339,7 +1373,10 @@ export function InboxPage() {
         removeLabelIds.push("INBOX");
       }
 
-      console.log("[handleEmailMove] Label modifications:", { addLabelIds, removeLabelIds });
+      console.log("[handleEmailMove] Label modifications:", {
+        addLabelIds,
+        removeLabelIds,
+      });
 
       await emailService.modifyLabels({
         threadId: emailThreadId,
@@ -1370,7 +1407,7 @@ export function InboxPage() {
         }
 
         const existingLabel = mailboxes.find(
-          (m) => m.name.toLowerCase() === newLabelName.trim().toLowerCase()
+          (m) => m.name.toLowerCase() === newLabelName.trim().toLowerCase(),
         );
 
         if (existingLabel) {
@@ -1380,7 +1417,7 @@ export function InboxPage() {
 
         systemLabel = false; // Create New -> systemLabel: false
         labelName = newLabelName.trim();
-        
+
         // Call API to create label with systemLabel = false
         const newLabel = await emailService.createLabel(labelName, systemLabel);
         labelId = newLabel.id;
@@ -1394,16 +1431,16 @@ export function InboxPage() {
           toast.error("Please select a label");
           return;
         }
-        
+
         const selectedLabel = mailboxes.find((m) => m.id === labelId);
         if (!selectedLabel) {
           toast.error("Label not found");
           return;
         }
-        
+
         systemLabel = true; // Existing Label -> systemLabel: true
         labelName = selectedLabel.name;
-        
+
         // Call API to create kanban column with systemLabel = true
         await emailService.createLabel(labelName, systemLabel);
       }
@@ -1412,13 +1449,19 @@ export function InboxPage() {
       if (
         (
           window as typeof window & {
-            __kanbanAddColumn?: (id: string, systemLabel: boolean) => Promise<boolean>;
+            __kanbanAddColumn?: (
+              id: string,
+              systemLabel: boolean,
+            ) => Promise<boolean>;
           }
         ).__kanbanAddColumn
       ) {
         const addResult = await (
           window as typeof window & {
-            __kanbanAddColumn?: (id: string, systemLabel: boolean) => Promise<boolean>;
+            __kanbanAddColumn?: (
+              id: string,
+              systemLabel: boolean,
+            ) => Promise<boolean>;
           }
         ).__kanbanAddColumn!(labelId, systemLabel);
 
@@ -1440,7 +1483,7 @@ export function InboxPage() {
       setIsAddColumnDialogOpen(false);
 
       toast.success("Column added to Kanban board");
-      
+
       // Reload kanban columns from API to show the new column immediately
       setTimeout(() => {
         if (
@@ -1468,7 +1511,7 @@ export function InboxPage() {
   const handleDeleteLabel = async (labelId: string, labelName: string) => {
     try {
       const loadingToast = toast.loading(
-        `Moving emails to Inbox and deleting label "${labelName}"...`
+        `Moving emails to Inbox and deleting label "${labelName}"...`,
       );
 
       await emailService.deleteLabel(labelId);
@@ -1526,13 +1569,13 @@ export function InboxPage() {
 
       if (searchResults.length === 0) {
         toast.info(
-          isSemantic ? "No emails found matching meaning" : "No emails found"
+          isSemantic ? "No emails found matching meaning" : "No emails found",
         );
       } else {
         toast.success(
           `Found ${searchResults.length} email${
             searchResults.length === 1 ? "" : "s"
-          }`
+          }`,
         );
       }
     } catch (error) {
@@ -1549,6 +1592,16 @@ export function InboxPage() {
     setIsSearchMode(false);
     setSelectedEmailId(null);
     loadEmails(true);
+  };
+
+  const handleFilterClear = () => {
+    const defaultFilters = {
+      sort: "newest" as const,
+      unreadOnly: false,
+      hasAttachments: false,
+    };
+    setFilters(defaultFilters);
+    localStorage.removeItem("email-filters");
   };
 
   const handleLogout = async () => {
@@ -1849,24 +1902,93 @@ export function InboxPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    toast.info(
-                      "Keyboard Shortcuts",
-                      {
-                        description: (
-                          <div className="text-xs space-y-1 mt-2">
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd> Navigate</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd> Close</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd> Compose</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd> Reply All | <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd> Forward</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd> Archive | <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark Unread | <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select</div>
-                            <div><kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd> Search</div>
+                    toast.info("Keyboard Shortcuts", {
+                      description: (
+                        <div className="text-xs space-y-1 mt-2">
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              j/k
+                            </kbd>{" "}
+                            or{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              ↑/↓
+                            </kbd>{" "}
+                            Navigate
                           </div>
-                        ),
-                        duration: 8000,
-                      }
-                    );
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              Enter
+                            </kbd>{" "}
+                            or{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              o
+                            </kbd>{" "}
+                            Open
+                          </div>
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              Esc
+                            </kbd>{" "}
+                            Close
+                          </div>
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              c
+                            </kbd>{" "}
+                            Compose
+                          </div>
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              r
+                            </kbd>{" "}
+                            Reply |{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              a
+                            </kbd>{" "}
+                            Reply All |{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              f
+                            </kbd>{" "}
+                            Forward
+                          </div>
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              e
+                            </kbd>{" "}
+                            Archive |{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              #
+                            </kbd>{" "}
+                            Delete |{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              s
+                            </kbd>{" "}
+                            Star
+                          </div>
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              u
+                            </kbd>{" "}
+                            Mark Unread |{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              x
+                            </kbd>{" "}
+                            Select
+                          </div>
+                          <div>
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              v
+                            </kbd>{" "}
+                            Toggle View |{" "}
+                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                              /
+                            </kbd>{" "}
+                            Search
+                          </div>
+                        </div>
+                      ),
+                      duration: 8000,
+                    });
                   }}
                   className="gap-2"
                   title="Keyboard shortcuts (Press ? for help)"
@@ -1899,7 +2021,6 @@ export function InboxPage() {
                 onSnooze={handleSnooze}
                 onUnsnooze={handleUnsnooze}
                 refreshTrigger={kanbanRefreshTrigger}
-                filters={filters}
                 onLabelRename={loadMailboxes}
               />
             </div>
@@ -1920,7 +2041,7 @@ export function InboxPage() {
                     email={selectedEmail}
                     mailboxId={selectedMailboxId}
                     selectedMailbox={mailboxes.find(
-                      (m) => m.id === selectedMailboxId
+                      (m) => m.id === selectedMailboxId,
                     )}
                     onReply={handleReply}
                     onReplyAll={handleReplyAll}
@@ -1979,40 +2100,100 @@ export function InboxPage() {
                     <EmailFilters
                       filters={filters}
                       onFiltersChange={setFilters}
-                      onClear={() => {
-                        // Reset filters to default without reloading page
-                        const defaultFilters = {
-                          sort: "newest" as const,
-                          unreadOnly: false,
-                          hasAttachments: false,
-                        };
-                        setFilters(defaultFilters);
-                        localStorage.removeItem("email-filters");
-                      }}
+                      onClear={handleFilterClear}
                     />
                   )}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      toast.info(
-                        "Keyboard Shortcuts",
-                        {
-                          description: (
-                            <div className="text-xs space-y-1 mt-2">
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd> Navigate</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-muted rounded">o</kbd> Open</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd> Close</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd> Compose</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd> Reply | <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd> Reply All | <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd> Forward</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">e</kbd> Archive | <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd> Delete | <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd> Star</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd> Mark Unread | <kbd className="px-1.5 py-0.5 bg-muted rounded">x</kbd> Select</div>
-                              <div><kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd> Toggle View | <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd> Search</div>
+                      toast.info("Keyboard Shortcuts", {
+                        description: (
+                          <div className="text-xs space-y-1 mt-2">
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                j/k
+                              </kbd>{" "}
+                              or{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                ↑/↓
+                              </kbd>{" "}
+                              Navigate
                             </div>
-                          ),
-                          duration: 8000,
-                        }
-                      );
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                Enter
+                              </kbd>{" "}
+                              or{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                o
+                              </kbd>{" "}
+                              Open
+                            </div>
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                Esc
+                              </kbd>{" "}
+                              Close
+                            </div>
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                c
+                              </kbd>{" "}
+                              Compose
+                            </div>
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                r
+                              </kbd>{" "}
+                              Reply |{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                a
+                              </kbd>{" "}
+                              Reply All |{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                f
+                              </kbd>{" "}
+                              Forward
+                            </div>
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                e
+                              </kbd>{" "}
+                              Archive |{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                #
+                              </kbd>{" "}
+                              Delete |{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                s
+                              </kbd>{" "}
+                              Star
+                            </div>
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                u
+                              </kbd>{" "}
+                              Mark Unread |{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                x
+                              </kbd>{" "}
+                              Select
+                            </div>
+                            <div>
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                v
+                              </kbd>{" "}
+                              Toggle View |{" "}
+                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
+                                /
+                              </kbd>{" "}
+                              Search
+                            </div>
+                          </div>
+                        ),
+                        duration: 8000,
+                      });
                     }}
                     className="gap-2"
                     title="Keyboard shortcuts (Press ? for help)"
@@ -2079,7 +2260,7 @@ export function InboxPage() {
                 email={selectedEmail}
                 mailboxId={selectedMailboxId}
                 selectedMailbox={mailboxes.find(
-                  (m) => m.id === selectedMailboxId
+                  (m) => m.id === selectedMailboxId,
                 )}
                 onReply={handleReply}
                 onReplyAll={handleReplyAll}
