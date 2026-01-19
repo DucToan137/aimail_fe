@@ -1048,7 +1048,13 @@ export function InboxPage() {
       }
 
       // Step 2: Save to workflow database
-      await emailService.snoozeEmailByThreadId(targetThreadId!, snoozeDate);
+      const actualSourceColumn = sourceColumn || selectedMailboxId;
+      await emailService.snoozeEmailByThreadId(
+        targetThreadId!,
+        snoozeDate,
+        undefined,
+        actualSourceColumn,
+      );
 
       // Remove from current list if present
       setRawEmails((prev) => prev.filter((e) => e.id !== emailId));
@@ -1068,6 +1074,9 @@ export function InboxPage() {
 
       // Update timer to catch this new snooze if it's the earliest
       setupSmartSnoozeTimer();
+
+      // Refresh Kanban board to reflect changes
+      setKanbanRefreshTrigger((prev) => prev + 1);
     } catch (error) {
       console.error("Failed to snooze email:", error);
       toast.error(
@@ -1327,8 +1336,8 @@ export function InboxPage() {
         removeLabelIds,
       });
 
-      console.log("[handleEmailMove] ✅ Email moved successfully via API");
-      toast.success("Email moved successfully");
+      // console.log("[handleEmailMove] ✅ Email moved successfully via API");
+      // toast.success("Email moved successfully");
     } catch (error) {
       console.error("[handleEmailMove] ❌ Failed to move email:", error);
       toast.error("Failed to move email");
