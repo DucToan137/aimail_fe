@@ -1743,12 +1743,21 @@ export function InboxPage() {
 
       {/* Mobile Search Bar - Always visible on mobile in list view */}
       {viewMode === "list" && !showEmailDetail && (
-        <div className="lg:hidden p-3 border-b bg-background">
+        <div className="lg:hidden p-3 border-b bg-background flex flex-col gap-3">
           <SearchBar
             emails={emails}
             onSearch={handleSearch}
             isSearching={isSearching}
           />
+          {!isSearchMode && (
+            <div className="flex justify-end">
+              <EmailFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                onClear={handleFilterClear}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -2218,7 +2227,8 @@ export function InboxPage() {
               </div>
 
               {/* Search Bar */}
-              <div className="p-4 border-b bg-background">
+              {/* Search Bar */}
+              <div className="hidden lg:block p-4 border-b bg-background">
                 <SearchBar
                   emails={emails}
                   onSearch={handleSearch}
