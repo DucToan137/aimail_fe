@@ -864,29 +864,6 @@ export function InboxPage() {
       try {
         await emailService.toggleStar(email.threadId, email.isStarred);
 
-        try {
-          let workflowId = email.workflowEmailId;
-
-          if (!workflowId) {
-            const newEmail = await emailService.snoozeEmailByThreadId(
-              email.threadId,
-              new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
-            );
-            workflowId = newEmail.id;
-            await emailService.updateEmailStatus(workflowId, "INBOX");
-
-            setRawEmails((prev) =>
-              prev.map((e) =>
-                e.id === emailId ? { ...e, workflowEmailId: workflowId } : e,
-              ),
-            );
-          }
-
-          await emailService.updateEmailStarred(workflowId, newStarred);
-        } catch (error) {
-          console.warn("Failed to sync star status with workflow DB:", error);
-        }
-
         toast.success(email.isStarred ? "Removed star" : "Added star");
       } catch (error) {
         setRawEmails(
@@ -1008,40 +985,6 @@ export function InboxPage() {
                 : emailService.markAsRead(email.threadId);
             }
             return Promise.resolve();
-          }),
-        );
-
-        // Update workflow DB
-        await Promise.all(
-          emailsToUpdate.map(async (email) => {
-            try {
-              let workflowId = email.workflowEmailId;
-
-              if (!workflowId) {
-                const newEmail = await emailService.snoozeEmailByThreadId(
-                  email.threadId,
-                  new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000),
-                );
-                workflowId = newEmail.id;
-                await emailService.updateEmailStatus(workflowId, "INBOX");
-
-                setRawEmails((prev) =>
-                  prev.map((e) =>
-                    e.id === email.id
-                      ? { ...e, workflowEmailId: workflowId }
-                      : e,
-                  ),
-                );
-              }
-
-              const wasRead = originalStates.get(email.id);
-              await emailService.updateEmailRead(workflowId, !wasRead);
-            } catch (error) {
-              console.warn(
-                "Failed to sync read status with workflow DB:",
-                error,
-              );
-            }
           }),
         );
       } catch (error) {
