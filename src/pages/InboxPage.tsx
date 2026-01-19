@@ -864,7 +864,7 @@ export function InboxPage() {
       try {
         await emailService.toggleStar(email.threadId, email.isStarred);
 
-        toast.success(email.isStarred ? "Removed star" : "Added star");
+        // toast.success(email.isStarred ? "Removed star" : "Added star");
       } catch (error) {
         setRawEmails(
           rawEmails.map((e) =>
