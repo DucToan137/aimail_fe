@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Email, Mailbox } from "@/types/email";
 import { KanbanColumn } from "./KanbanColumn";
 import { SnoozeModal } from "./SnoozeModal";
@@ -144,6 +144,13 @@ export function KanbanBoard({
   const [rawColumnEmails, setRawColumnEmails] = useState<
     Record<string, Email[]>
   >({});
+  const rawEmailsRef = useRef(rawColumnEmails);
+
+  // Sync ref with state
+  useEffect(() => {
+    rawEmailsRef.current = rawColumnEmails;
+  }, [rawColumnEmails]);
+
   // Store filtered emails
   const [columnEmails, setColumnEmails] = useState<Record<string, Email[]>>({});
   // Store filters per column
@@ -410,24 +417,37 @@ export function KanbanBoard({
   };
 
   // Load emails for each column
+  const columnIds = columns.map((c) => c.id).join(",");
   useEffect(() => {
-    loadAllColumns();
+    if (columnIds) {
+      loadAllColumns(false); // Only load missing columns
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columns]);
+  }, [columnIds]);
 
   // Reload all columns when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
       console.log("KanbanBoard: refreshTrigger changed, reloading all columns");
-      loadAllColumns();
+      loadAllColumns(true); // Force reload
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
 
-  const loadAllColumns = async () => {
-    for (const column of columns) {
-      await loadColumnEmails(column.id, true);
-    }
+  const loadAllColumns = async (forceReload: boolean = false) => {
+    await Promise.all(
+      columns.map((column) => {
+        // Skip if not forcing reload and we already have data
+        if (
+          !forceReload &&
+          rawEmailsRef.current[column.id] &&
+          rawEmailsRef.current[column.id].length > 0
+        ) {
+          return Promise.resolve();
+        }
+        return loadColumnEmails(column.id, true);
+      }),
+    );
   };
 
   const loadColumnEmails = async (columnId: string, reset: boolean = false) => {
@@ -448,8 +468,11 @@ export function KanbanBoard({
       setRawColumnEmails((prev) => ({
         ...prev,
         [columnId]: reset
-          ? response.emails
-          : [...(prev[columnId] || []), ...response.emails],
+          ? response.emails.map((e) => ({ ...e, _isPartial: true }))
+          : [
+              ...(prev[columnId] || []),
+              ...response.emails.map((e) => ({ ...e, _isPartial: true })),
+            ],
       }));
 
       // Fetch chi tiết từng email và update progressively

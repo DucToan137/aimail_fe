@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { EmailSummaryModal } from "./EmailSummaryModal";
 import { cn } from "@/lib/utils";
 import { Paperclip, Star, Sparkles } from "lucide-react";
+import { Skeleton } from "../ui/skeleton";
 
 interface KanbanCardProps {
   email: Email;
@@ -15,6 +16,7 @@ interface KanbanCardProps {
   onSelect: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
+  isLoading?: boolean;
 }
 
 export function KanbanCard({
@@ -24,6 +26,7 @@ export function KanbanCard({
   onSelect,
   onDragStart,
   onDragEnd,
+  isLoading,
 }: KanbanCardProps) {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
@@ -66,6 +69,36 @@ export function KanbanCard({
     setShowSummaryModal(true);
   };
 
+  const displayName =
+    email.from.name && email.from.name !== "Unknown"
+      ? email.from.name
+      : email.from.email;
+
+  if (isLoading) {
+    return (
+      <div className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 space-y-3 mb-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <div className="space-y-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-3/4" />
+        </div>
+        <div className="flex items-center gap-2 pt-2">
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Card
       draggable
@@ -95,7 +128,7 @@ export function KanbanCard({
           <div className="flex items-center gap-2 min-w-0">
             <Avatar className="h-6 w-6 shrink-0 ring-1 ring-background shadow-sm">
               <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-bold">
-                {getInitials(email.from.name)}
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
             <span
@@ -104,7 +137,7 @@ export function KanbanCard({
                 !email.isRead ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              {email.from.name || email.from.email}
+              {displayName}
             </span>
           </div>
           <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">

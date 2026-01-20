@@ -7,6 +7,7 @@ import * as LucideIcons from "lucide-react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { EmailFilters, type EmailFilterOptions } from "./EmailFilters";
+import { Skeleton } from "../ui/skeleton";
 
 interface KanbanColumn {
   id: string;
@@ -192,9 +193,37 @@ export function KanbanColumn({
       {/* Cards */}
       <div className="flex-1 md:overflow-y-auto overflow-y-visible p-3 space-y-3 min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         <div className="space-y-3">
-          {emails.length === 0 ? (
+          {isLoading && emails.length === 0 ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : emails.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-              {isLoading ? "Loading..." : "No emails"}
+              No emails
             </div>
           ) : (
             <>
@@ -207,6 +236,7 @@ export function KanbanColumn({
                   onSelect={() => onEmailSelect(email.id)}
                   onDragStart={() => onDragStart(email.id)}
                   onDragEnd={onDragEnd}
+                  isLoading={(email as any)._isPartial}
                 />
               ))}
               {hasMore && (

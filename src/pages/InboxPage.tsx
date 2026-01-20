@@ -1903,7 +1903,7 @@ export function InboxPage() {
                             </kbd>{" "}
                             Navigate
                           </div>
-                          <div>
+                          {/* <div>
                             <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               Enter
                             </kbd>{" "}
@@ -1912,7 +1912,7 @@ export function InboxPage() {
                               o
                             </kbd>{" "}
                             Open
-                          </div>
+                          </div> */}
                           <div>
                             <kbd className="px-1.5 py-0.5 bg-muted rounded">
                               Esc
@@ -2117,7 +2117,7 @@ export function InboxPage() {
                               </kbd>{" "}
                               Navigate
                             </div>
-                            <div>
+                            {/* <div>
                               <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 Enter
                               </kbd>{" "}
@@ -2126,7 +2126,7 @@ export function InboxPage() {
                                 o
                               </kbd>{" "}
                               Open
-                            </div>
+                            </div> */}
                             <div>
                               <kbd className="px-1.5 py-0.5 bg-muted rounded">
                                 Esc
