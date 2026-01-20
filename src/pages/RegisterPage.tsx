@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../hooks/useAuth';
 import { RegisterForm } from '../components/auth/RegisterForm';
+import { GoogleAuthButton } from '../components/auth/GoogleAuthButton';
 import { Card } from '../components/ui/card';
 import { UserPlus } from 'lucide-react';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -11,7 +12,7 @@ import type { RegisterCredentials } from '../types/auth';
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register: registerUser, isAuthenticated} = useAuth();
+  const { register: registerUser, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -45,6 +46,19 @@ export const RegisterPage: React.FC = () => {
         <RegisterForm 
           onSubmit={handleRegister}
         />
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          </div>
+        </div>
+
+        {/* Google Sign-In Button */}
+        <GoogleAuthButton disabled={isLoading} />
 
         {/* Link to Login Page */}
         <div className="text-center">

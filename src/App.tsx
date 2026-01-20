@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/dashboard/ProtectedRoute';
 import { InboxPage } from './pages/InboxPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { GoogleCallbackPage } from './pages/GoogleCallbackPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
@@ -15,10 +17,20 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           
           {/* Protected Routes */}
           <Route
-            path="/inbox"
+            path="/mailbox/:mailboxId"
+            element={
+              <ProtectedRoute>
+                <InboxPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mailbox/:mailboxId/:emailId"
             element={
               <ProtectedRoute>
                 <InboxPage />
@@ -26,8 +38,10 @@ function App() {
             }
           />
           
+          <Route path="/inbox" element={<Navigate to="/mailbox/INBOX" replace />} />
+          
           {/* Default Route */}
-          <Route path="/" element={<Navigate to="/inbox" replace />} />
+          <Route path="/" element={<Navigate to="/mailbox/INBOX" replace />} />
 
           {/* Not Found Route */}
           <Route path="*" element={<NotFoundPage />} />

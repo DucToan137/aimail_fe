@@ -1,13 +1,10 @@
-/**
- * Cookie Manager
- */
-
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const LOGOUT_EVENT_KEY = 'auth_logout_event';
+const AUTH_STATE_KEY = 'auth_state';
 
-// Default expiry time (in days)
-const ACCESS_TOKEN_EXPIRY_DAYS = 1; // 1 day
-const REFRESH_TOKEN_EXPIRY_DAYS = 30; // 30 days
+const ACCESS_TOKEN_EXPIRY_DAYS = 1;
+const REFRESH_TOKEN_EXPIRY_DAYS = 30;
 
 interface CookieOptions {
   expires?: number; 
@@ -63,15 +60,45 @@ function deleteCookie(name: string, path: string = '/'): void {
 
 export const cookieManager = {
   setAccessToken(token: string): void {
-    setCookie(ACCESS_TOKEN_KEY, token, {
-      expires: ACCESS_TOKEN_EXPIRY_DAYS,
-      secure: true,
-      sameSite: 'Lax',
-    });
+    try {
+      setCookie(ACCESS_TOKEN_KEY, token, {
+        expires: ACCESS_TOKEN_EXPIRY_DAYS,
+        secure: false,
+        sameSite: 'Lax',
+      });
+      console.log('Access token set successfully:', `${token.substring(0, 20)}...`);
+      
+      const verifyToken = this.getAccessToken();
+      if (!verifyToken) {
+        console.error('Failed to set access token - token not found after setting');
+      } else {
+        console.log('Access token verified in cookies');
+      }
+    } catch (error) {
+      console.error('Error setting access token:', error);
+    }
   },
 
   getAccessToken(): string | null {
-    return getCookie(ACCESS_TOKEN_KEY);
+    const token = getCookie(ACCESS_TOKEN_KEY);
+    console.log('Getting access token:', token ? `${token.substring(0, 20)}...` : 'null');
+    
+    if (token) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          console.log('Token payload:', payload);
+          console.log('Token exp:', payload.exp ? new Date(payload.exp * 1000) : 'No exp');
+          console.log('Token iss:', payload.iss);
+          console.log('Token aud:', payload.aud);
+        }
+      } catch (e) {
+        console.log('Failed to decode token:', e);
+      }
+    }
+    
+    return token;
   },
 
   clearAccessToken(): void {
@@ -79,11 +106,23 @@ export const cookieManager = {
   },
 
   setRefreshToken(token: string): void {
-    setCookie(REFRESH_TOKEN_KEY, token, {
-      expires: REFRESH_TOKEN_EXPIRY_DAYS,
-      secure: true,
-      sameSite: 'Lax',
-    });
+    try {
+      setCookie(REFRESH_TOKEN_KEY, token, {
+        expires: REFRESH_TOKEN_EXPIRY_DAYS,
+        secure: false,
+        sameSite: 'Lax',
+      });
+      console.log('Refresh token set successfully:', `${token.substring(0, 20)}...`);
+      
+      const verifyToken = this.getRefreshToken();
+      if (!verifyToken) {
+        console.error('Failed to set refresh token - token not found after setting');
+      } else {
+        console.log('Refresh token verified in cookies');
+      }
+    } catch (error) {
+      console.error('Error setting refresh token:', error);
+    }
   },
 
   getRefreshToken(): string | null {
@@ -110,5 +149,88 @@ export const cookieManager = {
 
   hasAccessToken(): boolean {
     return !!this.getAccessToken();
+  },
+
+  /**
+   * Trigger logout event for multi-tab sync
+   * Sets a timestamp in localStorage that other tabs will detect
+   */
+  triggerLogoutEvent(): void {
+    try {
+      // Set logout event with current timestamp
+      const logoutEvent = {
+        timestamp: Date.now(),
+        action: 'logout'
+      };
+      localStorage.setItem(LOGOUT_EVENT_KEY, JSON.stringify(logoutEvent));
+      
+      // Clear immediately after setting to allow re-triggering
+      setTimeout(() => {
+        localStorage.removeItem(LOGOUT_EVENT_KEY);
+      }, 100);
+      
+      // Also set auth state to logged out
+      localStorage.setItem(AUTH_STATE_KEY, 'logged_out');
+    } catch (error) {
+      console.error('Error triggering logout event:', error);
+    }
+  },
+
+  /**
+   * Listen for logout events from other tabs
+   * Returns cleanup function
+   */
+  onLogoutEvent(callback: () => void): () => void {
+    const handleStorageChange = (event: StorageEvent) => {
+      // Check if logout event was triggered
+      if (event.key === LOGOUT_EVENT_KEY && event.newValue) {
+        try {
+          const logoutEvent = JSON.parse(event.newValue);
+          if (logoutEvent.action === 'logout') {
+            console.log('Multi-tab logout detected');
+            callback();
+          }
+        } catch (error) {
+          console.error('Error parsing logout event:', error);
+        }
+      }
+      
+      // Also check auth state changes
+      if (event.key === AUTH_STATE_KEY && event.newValue === 'logged_out') {
+        console.log('Auth state change detected: logged out');
+        callback();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Return cleanup function
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  },
+
+  /**
+   * Set auth state to logged in
+   */
+  setAuthState(state: 'logged_in' | 'logged_out'): void {
+    try {
+      localStorage.setItem(AUTH_STATE_KEY, state);
+    } catch (error) {
+      console.error('Error setting auth state:', error);
+    }
+  },
+
+  /**
+   * Get current auth state
+   */
+  getAuthState(): 'logged_in' | 'logged_out' | null {
+    try {
+      const state = localStorage.getItem(AUTH_STATE_KEY);
+      return state as 'logged_in' | 'logged_out' | null;
+    } catch (error) {
+      console.error('Error getting auth state:', error);
+      return null;
+    }
   },
 };

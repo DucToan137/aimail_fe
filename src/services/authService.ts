@@ -2,7 +2,6 @@ import { apiClient } from '../api/apiClient';
 import type {
   LoginCredentials,
   RegisterCredentials,
-  GoogleAuthCredentials,
   AuthResponse,
   RefreshTokenResponse,
   User,
@@ -17,8 +16,35 @@ class AuthService {
     return apiClient.post<AuthResponse>('/auth/register', credentials, { skipAuth: true });
   }
 
-  async loginWithGoogle(credentials: GoogleAuthCredentials): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>('/auth/google', credentials, { skipAuth: true });
+  getGoogleAuthUrl(state?: string): string {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://aimail-be-3.onrender.com';
+    const url = new URL(`${baseURL}/auth/google/authorize`);
+    if (state) {
+      url.searchParams.append('state', state);
+    }
+    console.log('AuthService - Google Auth URL:', url.toString());
+    return url.toString();
+  }
+
+  async handleGoogleCallback(code: string, state?: string): Promise<AuthResponse> {
+    console.log('AuthService - handleGoogleCallback called', { code: code.substring(0, 20) + '...', state });
+    
+    try {
+      const response = await apiClient.post<AuthResponse>(
+        '/auth/google/callback',
+        { code, state },
+        { skipAuth: true }
+      );
+      console.log('AuthService - Backend response:', {
+        hasAccessToken: !!response.accessToken,
+        hasRefreshToken: !!response.refreshToken,
+        email: response.email
+      });
+      return response;
+    } catch (error) {
+      console.error('AuthService - handleGoogleCallback error:', error);
+      throw error;
+    }
   }
 
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
@@ -31,8 +57,11 @@ class AuthService {
 
   getUserFromToken(token: string, email?: string): User {
     try {
-      // Decode JWT token (simple decode without verification - verification happens on backend)
       const base64Url = token.split('.')[1];
+      if (!base64Url) {
+        throw new Error('Invalid token format');
+      }
+      
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
         atob(base64)
@@ -43,13 +72,15 @@ class AuthService {
       
       const payload = JSON.parse(jsonPayload);
       
-      const userEmail = email || payload.sub || payload.email || 'unknown@example.com';
+      const userEmail = email || payload.email || payload.sub || 'unknown@example.com';
+      
+      const provider = email ? 'google' : (payload.provider as 'email' | 'google') || 'email';
       
       return {
         id: payload.sub || payload.userId || 'unknown',
         email: userEmail,
         name: userEmail.split('@')[0],
-        provider: (payload.provider as 'email' | 'google') || 'email',
+        provider,
       };
     } catch (error) {
       console.error('Failed to decode token:', error);

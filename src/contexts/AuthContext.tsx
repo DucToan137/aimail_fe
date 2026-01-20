@@ -5,15 +5,16 @@ import type {
   AuthState,
   LoginCredentials,
   RegisterCredentials,
-  GoogleAuthCredentials,
 } from '../types/auth';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
-  loginWithGoogle: (credentials: GoogleAuthCredentials) => Promise<void>;
+  redirectToGoogle: (state?: string) => void;
+  handleGoogleCallback: (code: string, state?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
+  setAuthState: (accessToken: string, refreshToken: string, email: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,32 +31,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  /**
-   * Initialize auth state on mount
-   * Check if user has a valid refresh token and try to restore session
-   */
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const refreshToken = cookieManager.getRefreshToken();
+        const accessToken = cookieManager.getAccessToken();
         
-        if (!refreshToken) {
-          setState(prev => ({ ...prev, isLoading: false }));
+        if (!refreshToken && !accessToken) {
+          setState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
           return;
         }
 
-        // Try to refresh access token
-        const response = await authService.refreshToken(refreshToken);
-        cookieManager.setTokens(response.accessToken, response.refreshToken);
+        if (accessToken) {
+          try {
+            // For Google auth, we need the email. Try to get it from the token payload
+            const user = authService.getUserFromToken(accessToken);
+            setState({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            return;
+          } catch (error) {
+            console.log('Access token invalid or decode failed:', error);
+            // Clear invalid access token
+            cookieManager.clearAccessToken();
+          }
+        }
 
-        const user = authService.getUserFromToken(response.accessToken, response.email);
-        
-        setState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
+        if (refreshToken) {
+          const response = await authService.refreshToken(refreshToken);
+          cookieManager.setTokens(response.accessToken, response.refreshToken);
+
+          const user = authService.getUserFromToken(response.accessToken, response.email);
+          
+          setState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          setState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+        }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
         cookieManager.clearAllTokens();
@@ -69,6 +98,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+  }, []);
+
+  // Multi-tab logout sync
+  useEffect(() => {
+    // Listen for logout events from other tabs
+    const cleanup = cookieManager.onLogoutEvent(() => {
+      console.log('Logout event received from another tab');
+      
+      // Clear local state
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Logged out from another tab',
+      });
+      
+      // Clear tokens in this tab
+      cookieManager.clearAllTokens();
+      
+      // Optionally redirect to login
+      if (window.location.pathname !== '/login' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/login';
+      }
+    });
+
+    return cleanup;
   }, []);
 
   useEffect(() => {
@@ -91,6 +146,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.login(credentials);
       cookieManager.setTokens(response.accessToken, response.refreshToken);
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
 
       const user = authService.getUserFromToken(response.accessToken, response.email);
 
@@ -118,6 +176,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authService.register(credentials);
       cookieManager.setTokens(response.accessToken, response.refreshToken);
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
 
       const user = authService.getUserFromToken(response.accessToken, response.email);
 
@@ -139,14 +200,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const loginWithGoogle = useCallback(async (credentials: GoogleAuthCredentials) => {
+  const redirectToGoogle = useCallback((state?: string) => {
+    const authUrl = authService.getGoogleAuthUrl(state);
+    window.location.href = authUrl;
+  }, []);
+
+  const handleGoogleCallback = useCallback(async (code: string, state?: string) => {
+    console.log('AuthContext - handleGoogleCallback started', { code: !!code, state });
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await authService.loginWithGoogle(credentials);
+      console.log('AuthContext - Calling authService.handleGoogleCallback');
+      const response = await authService.handleGoogleCallback(code, state);
+      console.log('AuthContext - Got response:', {
+        hasAccessToken: !!response.accessToken,
+        hasRefreshToken: !!response.refreshToken,
+        email: response.email
+      });
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
+
+      console.log('AuthContext - Setting tokens in cookies');
       cookieManager.setTokens(response.accessToken, response.refreshToken);
 
+      console.log('AuthContext - Creating user from token');
       const user = authService.getUserFromToken(response.accessToken, response.email);
+      console.log('AuthContext - User created:', user);
 
       setState({
         user,
@@ -154,7 +234,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading: false,
         error: null,
       });
+      console.log('AuthContext - State updated successfully');
     } catch (error) {
+      console.error('AuthContext - handleGoogleCallback error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Google login failed';
       setState({
         user: null,
@@ -169,7 +251,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
 
+    // Clear tokens
     cookieManager.clearAllTokens();
+    
+    // Trigger logout event for other tabs
+    cookieManager.triggerLogoutEvent();
+    
     setState({
       user: null,
       isAuthenticated: false,
@@ -191,11 +278,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const accessToken = cookieManager.getAccessToken();
       if (accessToken) {
-        const user = authService.getUserFromToken(accessToken);
-        setState(prev => ({ ...prev, user }));
+        // Try to get email from existing user state first, then decode token
+        const existingEmail = state.user?.email;
+        const user = authService.getUserFromToken(accessToken, existingEmail);
+        setState(prev => ({ ...prev, user, isAuthenticated: true }));
       }
     } catch (error) {
       console.error('Failed to refresh auth:', error);
+    }
+  }, [state.user?.email]);
+
+  const setAuthState = useCallback((accessToken: string, refreshToken: string, email: string) => {
+    try {
+      cookieManager.setTokens(accessToken, refreshToken);
+      
+      // Set auth state to logged in for multi-tab sync
+      cookieManager.setAuthState('logged_in');
+      
+      const user = authService.getUserFromToken(accessToken, email);
+      setState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      console.error('Failed to set auth state:', error);
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Failed to authenticate user',
+      });
     }
   }, []);
 
@@ -203,9 +317,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...state,
     login,
     register,
-    loginWithGoogle,
+    redirectToGoogle,
+    handleGoogleCallback,
     logout,
     refreshAuth,
+    setAuthState,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

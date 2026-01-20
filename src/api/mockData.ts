@@ -59,6 +59,7 @@ export const mockMailboxes: Mailbox[] = [
 export const mockEmails: Email[] = [
   {
     id: '1',
+    threadId: 'thread-1',
     from: {
       name: 'Sarah Johnson',
       email: 'sarah.johnson@company.com',
@@ -109,6 +110,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '2',
+    threadId: 'thread-2',
     from: {
       name: 'Marketing Team',
       email: 'marketing@company.com',
@@ -140,6 +142,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '3',
+    threadId: 'thread-3',
     from: {
       name: 'John Smith',
       email: 'john.smith@partner.com',
@@ -164,6 +167,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '4',
+    threadId: 'thread-4',
     from: {
       name: 'IT Support',
       email: 'support@company.com',
@@ -194,6 +198,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '5',
+    threadId: 'thread-5',
     from: {
       name: 'Newsletter',
       email: 'newsletter@tech.com',
@@ -223,6 +228,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '6',
+    threadId: 'thread-6',
     from: {
       name: 'Emily Chen',
       email: 'emily.chen@company.com',
@@ -263,6 +269,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '7',
+    threadId: 'thread-7',
     from: {
       name: 'HR Department',
       email: 'hr@company.com',
@@ -296,6 +303,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '8',
+    threadId: 'thread-8',
     from: {
       name: 'Michael Brown',
       email: 'michael@client.com',
@@ -325,6 +333,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '9',
+    threadId: 'thread-9',
     from: {
       name: 'You',
       email: 'you@example.com',
@@ -354,6 +363,7 @@ export const mockEmails: Email[] = [
   },
   {
     id: '10',
+    threadId: 'thread-10',
     from: {
       name: 'You',
       email: 'you@example.com',

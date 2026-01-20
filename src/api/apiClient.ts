@@ -10,13 +10,10 @@ class ApiClient {
   private baseURL: string;
   private refreshPromise: Promise<string> | null = null;
 
-  constructor(baseURL: string = import.meta.env.VITE_API_BASE_URL|| 'http://localhost:8080') {
+  constructor(baseURL: string = import.meta.env.VITE_API_BASE_URL|| 'https://aimail-be-3.onrender.com') {
     this.baseURL = baseURL;
   }
 
-  /**
-   * Main request method with automatic token injection and refresh
-   */
   async request<T>(
     endpoint: string,
     config: RequestConfig = {}
@@ -32,6 +29,9 @@ class ApiClient {
       const accessToken = cookieManager.getAccessToken();
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
+        console.log('API Request - Authorization header set with token from:', accessToken.substring(0, 30) + '...');
+      } else {
+        console.log('API Request - No access token found');
       }
     }
 
@@ -40,12 +40,21 @@ class ApiClient {
     }
 
     try {
+      console.log(`API Request - ${fetchConfig.method || 'GET'} ${url}`);
+      console.log('API Request - Headers:', headers);
+      if (fetchConfig.body) {
+        console.log('API Request - Body:', fetchConfig.body);
+      }
+      
       const response = await fetch(url, {
         ...fetchConfig,
         headers,
       });
 
-      // Handle 401 Unauthorized - Token expired
+      console.log(`API Response - Status: ${response.status}`);
+      console.log('API Response - Headers:', Object.fromEntries(response.headers.entries()));
+      console.log('API Response - URL after redirects:', response.url);
+
       if (response.status === 401 && !skipAuth && !isRetry) {
         const newAccessToken = await this.refreshAccessToken();
         
@@ -59,6 +68,14 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        console.error(`API Response Error - Status: ${response.status}`);
+        try {
+          const errorBody = await response.text();
+          console.error('API Response Error Body:', errorBody);
+        } catch (e) {
+          console.error('Could not read error response body');
+        }
+        
         const error: ApiError = await response.json().catch(() => ({
           message: `HTTP error! status: ${response.status}`,
         }));
@@ -69,19 +86,38 @@ class ApiClient {
         return {} as T;
       }
 
-      return response.json();
+      const contentType = response.headers.get('content-type');
+      console.log('API Response - Content-Type:', contentType);
+      
+      if (response.status === 204) {
+        return {} as T;
+      }
+      
+      if (contentType && contentType.includes('application/json')) {
+        const jsonResponse = await response.json();
+        console.log('API Response - JSON Body:', jsonResponse);
+        return jsonResponse;
+      } else {
+        const text = await response.text();
+        console.log('API Response - Text Body:', text);
+        
+        // Try to parse as JSON even if content-type is not set correctly
+        try {
+          const jsonResponse = JSON.parse(text);
+          console.log('API Response - Parsed JSON from text:', jsonResponse);
+          return jsonResponse;
+        } catch (e) {
+          console.log('API Response - Could not parse as JSON, returning as text');
+          return (text || {}) as T;
+        }
+      }
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
     }
   }
 
-  /**
-   * Refresh access token using refresh token
-   * Handles concurrent refresh requests (only one refresh at a time)
-   */
   private async refreshAccessToken(): Promise<string | null> {
-    // If a refresh is already in progress, wait for it
     if (this.refreshPromise) {
       return this.refreshPromise;
     }
@@ -91,7 +127,6 @@ class ApiClient {
       return null;
     }
 
-    // Create a new refresh promise
     this.refreshPromise = (async () => {
       try {
         const response = await fetch(`${this.baseURL}/auth/refresh`, {
@@ -112,7 +147,6 @@ class ApiClient {
         console.error('Token refresh error:', error);
         return null;
       } finally {
-        // Clear the refresh promise
         this.refreshPromise = null;
       }
     })();
@@ -120,9 +154,6 @@ class ApiClient {
     return this.refreshPromise;
   }
 
-  /**
-   * Handle authentication failure by clearing tokens and redirecting
-   */
   private handleAuthFailure(): void {
     cookieManager.clearAllTokens();
     
@@ -133,7 +164,6 @@ class ApiClient {
     }
   }
 
-  // Convenience methods
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     return this.request<T>(endpoint, { ...config, method: 'GET' });
   }

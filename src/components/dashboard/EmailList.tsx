@@ -1,38 +1,80 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import type { Email } from '@/types/email';
-import { Star, Paperclip, RefreshCw, Trash2, Mail, MailOpen, Edit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import type { Email } from "@/types/email";
+import {
+  Star,
+  Paperclip,
+  RefreshCw,
+  Trash2,
+  Mail,
+  MailOpen,
+  Edit,
+  Inbox,
+  Trash,
+  Clock,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { EmailSummaryModal } from "./EmailSummaryModal";
 
 interface EmailListProps {
   emails: Email[];
   selectedEmailId: string | null;
+  mailboxId: string;
   onSelectEmail: (emailId: string) => void;
   onToggleStar: (emailId: string) => void;
   onRefresh: () => void;
   onCompose: () => void;
   onDelete: (emailIds: string[]) => void;
+  onPermanentDelete?: (emailIds: string[]) => void;
+  onMoveToInbox?: (emailIds: string[]) => void;
   onToggleRead: (emailIds: string[]) => void;
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function EmailList({
   emails,
   selectedEmailId,
+  mailboxId,
   onSelectEmail,
   onToggleStar,
   onRefresh,
   onCompose,
   onDelete,
+  onPermanentDelete,
+  onMoveToInbox,
   onToggleRead,
+  isLoading = false,
+  isLoadingMore = false,
+  hasMore = false,
+  onLoadMore,
 }: EmailListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [summaryEmailId, setSummaryEmailId] = useState<string | null>(null);
+  const [summaryEmailSubject, setSummaryEmailSubject] = useState<
+    string | undefined
+  >();
 
   const handleSelectAll = () => {
     if (selectedIds.size === emails.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(emails.map(e => e.id)));
+      setSelectedIds(new Set(emails.map((e) => e.id)));
     }
   };
 
@@ -47,8 +89,27 @@ export function EmailList({
   };
 
   const handleBulkDelete = () => {
-    onDelete(Array.from(selectedIds));
-    setSelectedIds(new Set());
+    if (mailboxId === "TRASH" && onPermanentDelete) {
+      setShowDeleteDialog(true);
+    } else {
+      onDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
+  };
+
+  const confirmPermanentDelete = () => {
+    if (onPermanentDelete) {
+      onPermanentDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
+    setShowDeleteDialog(false);
+  };
+
+  const handleBulkMoveToInbox = () => {
+    if (onMoveToInbox) {
+      onMoveToInbox(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
   };
 
   const handleBulkToggleRead = () => {
@@ -63,14 +124,54 @@ export function EmailList({
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
     } else if (days === 1) {
-      return 'Yesterday';
+      return "Yesterday";
     } else if (days < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
+      return date.toLocaleDateString("en-US", { weekday: "short" });
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
     }
+  };
+
+  const formatSnoozeTime = (snoozedUntil: string) => {
+    const date = new Date(snoozedUntil);
+    const now = new Date();
+
+    const timeStr = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    if (date.toDateString() === now.toDateString()) {
+      return `Today, ${timeStr}`;
+    }
+
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${timeStr}`;
+    }
+
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 7 && diffDays > 0) {
+      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+      return `${dayName}, ${timeStr}`;
+    }
+
+    const dateStr = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return `${dateStr}, ${timeStr}`;
   };
 
   return (
@@ -82,20 +183,62 @@ export function EmailList({
             <Edit className="h-4 w-4" />
             <span className="hidden xs:inline">Compose</span>
           </Button>
-          <Button onClick={onRefresh} variant="outline" size="sm" className="gap-1.5">
+          <Button
+            onClick={onRefresh}
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
             <RefreshCw className="h-4 w-4" />
             <span className="hidden xs:inline">Refresh</span>
           </Button>
         </div>
-        
+
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <span className="text-xs sm:text-sm text-gray-600">{selectedIds.size} selected</span>
-            <Button onClick={handleBulkDelete} variant="outline" size="sm" className="gap-1.5">
-              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Delete</span>
-            </Button>
-            <Button onClick={handleBulkToggleRead} variant="outline" size="sm" className="gap-1.5">
+            <span className="text-xs sm:text-sm text-gray-600">
+              {selectedIds.size} selected
+            </span>
+
+            {mailboxId === "TRASH" ? (
+              <>
+                <Button
+                  onClick={handleBulkDelete}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-red-600 hover:text-red-700"
+                >
+                  <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Delete Forever</span>
+                </Button>
+                <Button
+                  onClick={handleBulkMoveToInbox}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Move to Inbox</span>
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={handleBulkDelete}
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Delete</span>
+              </Button>
+            )}
+
+            <Button
+              onClick={handleBulkToggleRead}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+            >
               <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Toggle Read</span>
             </Button>
@@ -106,36 +249,52 @@ export function EmailList({
       {/* Email List */}
       <div className="flex-1 overflow-y-auto">
         <div className="divide-y">
-          {/* Select All Row */}
-          <div className="px-2 sm:px-4 py-2 bg-gray-50 border-b flex items-center gap-2 sm:gap-3">
-            <Checkbox
-              checked={selectedIds.size === emails.length && emails.length > 0}
-              onCheckedChange={handleSelectAll}
-              aria-label="Select all emails"
-            />
-            <span className="text-xs sm:text-sm text-gray-600">
-              {emails.length} {emails.length === 1 ? 'email' : 'emails'}
-            </span>
-          </div>
+          {!isLoading && (
+            <div className="px-2 sm:px-4 py-2 bg-gray-50 border-b flex items-center gap-2 sm:gap-3">
+              <Checkbox
+                checked={
+                  selectedIds.size === emails.length && emails.length > 0
+                }
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all emails"
+              />
+              <span className="text-xs sm:text-sm text-gray-600">
+                {emails.length} {emails.length === 1 ? "email" : "emails"}
+              </span>
+            </div>
+          )}
 
-          {/* Email Items */}
-          {emails.length === 0 ? (
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-blue-600" />
+              <p className="mt-2 text-sm text-gray-600">Loading...</p>
+            </div>
+          ) : null}
+
+          {!isLoading && emails.length === 0 ? (
             <div className="p-4 sm:p-8 text-center text-gray-500">
               <Mail className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
               <p className="text-xs sm:text-sm">No emails in this folder</p>
             </div>
-          ) : (
+          ) : null}
+
+          {!isLoading &&
             emails.map((email) => {
               const isSelected = email.id === selectedEmailId;
               const isChecked = selectedIds.has(email.id);
+              const isSkeleton =
+                email.from.name === "(Unknown)" ||
+                (!email.subject && !email.preview);
 
               return (
                 <div
                   key={email.id}
                   className={cn(
-                    'px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors hover:bg-gray-50',
-                    isSelected && 'bg-blue-50 hover:bg-blue-50',
-                    !email.isRead && 'bg-blue-50/30'
+                    "px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors border-l-4",
+                    isSelected && "bg-blue-50 hover:bg-blue-50",
+                    !email.isRead
+                      ? "bg-blue-50/30 border-l-blue-500 font-medium"
+                      : "border-l-transparent hover:bg-gray-50",
                   )}
                   onClick={() => onSelectEmail(email.id)}
                 >
@@ -155,57 +314,160 @@ export function EmailList({
                         onToggleStar(email.id);
                       }}
                       className="mt-0.5 sm:mt-1 shrink-0"
-                      aria-label={email.isStarred ? 'Unstar email' : 'Star email'}
+                      aria-label={
+                        email.isStarred ? "Unstar email" : "Star email"
+                      }
                     >
                       <Star
                         className={cn(
-                          'h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors',
+                          "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors",
                           email.isStarred
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-400 hover:text-yellow-400'
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-400 hover:text-yellow-400",
                         )}
                       />
                     </button>
 
                     {/* Email Content */}
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
-                        <span
-                          className={cn(
-                            'text-xs sm:text-sm truncate flex-1 min-w-0',
-                            !email.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'
-                          )}
-                        >
-                          {email.from.name}
-                        </span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {email.hasAttachments && (
-                            <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
-                          )}
-                          <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
-                            {formatTime(email.timestamp)}
-                          </span>
+                      {isSkeleton ? (
+                        <div className="animate-pulse">
+                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
+                            <div className="h-4 w-32 bg-gray-200 rounded" />
+                            <div className="ml-auto h-3 w-12 bg-gray-200 rounded" />
+                          </div>
+                          <div className="h-4 w-3/4 bg-gray-200 rounded mb-1" />
+                          <div className="h-3 w-1/2 bg-gray-200 rounded" />
                         </div>
-                      </div>
-                      <div
-                        className={cn(
-                          'text-xs sm:text-sm truncate mb-0.5 sm:mb-1',
-                          !email.isRead ? 'font-medium text-gray-900' : 'text-gray-600'
-                        )}
-                      >
-                        {email.subject}
-                      </div>
-                      <div className="text-xs sm:text-sm text-gray-500 truncate">
-                        {email.preview}
-                      </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
+                            <span
+                              className={cn(
+                                "text-xs sm:text-sm truncate flex-1 min-w-0",
+                                !email.isRead
+                                  ? "font-semibold text-gray-900"
+                                  : "text-gray-700",
+                              )}
+                            >
+                              {email.from.name}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {email.hasAttachments && (
+                                <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
+                              )}
+                              {email.snoozedUntil ? (
+                                <>
+                                  <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500" />
+                                  <span className="text-[10px] sm:text-xs text-blue-600 whitespace-nowrap font-medium">
+                                    {formatSnoozeTime(email.snoozedUntil)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
+                                  {formatTime(email.timestamp)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            className={cn(
+                              "text-xs sm:text-sm truncate mb-0.5 sm:mb-1",
+                              !email.isRead
+                                ? "font-semibold text-gray-900"
+                                : "text-gray-600",
+                            )}
+                          >
+                            {email.subject}
+                          </div>
+                          <div
+                            className={cn(
+                              "text-xs sm:text-sm truncate",
+                              !email.isRead
+                                ? "text-gray-700 font-medium"
+                                : "text-gray-500",
+                            )}
+                          >
+                            {email.preview}
+                          </div>
+
+                          {/* AI Summary Button */}
+                          <div className="mt-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSummaryEmailId(
+                                  email.messages?.[0]?.id || email.id,
+                                );
+                                setSummaryEmailSubject(email.subject);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-gradient-t-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded transition-colors"
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              AI Summary
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
               );
-            })
+            })}
+
+          {!isLoading && hasMore && (
+            <div className="p-4 text-center border-t bg-gray-50">
+              {isLoadingMore ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent text-blue-600" />
+                  Loading more...
+                </div>
+              ) : (
+                <Button
+                  onClick={onLoadMore}
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto min-w-[120px]"
+                >
+                  Load More
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedIds.size} email
+              {selectedIds.size > 1 ? "s" : ""}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmPermanentDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Email Summary Modal */}
+      <EmailSummaryModal
+        open={!!summaryEmailId}
+        onClose={() => {
+          setSummaryEmailId(null);
+          setSummaryEmailSubject(undefined);
+        }}
+        messageId={summaryEmailId || ""}
+        emailSubject={summaryEmailSubject}
+      />
     </div>
   );
 }
