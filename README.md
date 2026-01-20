@@ -79,9 +79,6 @@ Create a `.env` file in the root directory:
 ```env
 # URL of the Spring Boot Backend
 VITE_API_BASE_URL=http://localhost:8080/api
-
-# Google OAuth Callback URL (must match Google Console)
-VITE_GOOGLE_REDIRECT_URI=http://localhost:5174/auth/google/callback
 ```
 
 ### 3. Run Development Server
