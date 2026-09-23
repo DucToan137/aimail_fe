@@ -117,9 +117,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Clear tokens in this tab
       cookieManager.clearAllTokens();
       
-      // Optionally redirect to login
-      if (window.location.pathname !== '/login' && !window.location.pathname.startsWith('/auth')) {
-        window.location.href = '/login';
+      // Redirect to landing page
+      if (window.location.pathname !== '/' && window.location.pathname !== '/login' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/';
       }
     });
 

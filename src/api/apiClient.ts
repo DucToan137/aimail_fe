@@ -159,8 +159,8 @@ class ApiClient {
     
     window.dispatchEvent(new CustomEvent('auth:logout'));
     
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
+    if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+      window.location.href = '/';
     }
   }
 

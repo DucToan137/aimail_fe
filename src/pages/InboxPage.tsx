@@ -11,6 +11,7 @@ import { EmailDetail } from "@/components/dashboard/EmailDetail";
 import { ComposeEmailModal } from "@/components/dashboard/ComposeEmailModal";
 import { KanbanBoard } from "@/components/dashboard/KanbanBoard";
 import { SearchBar } from "@/components/dashboard/SearchBar";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   EmailFilters,
   type EmailFilterOptions,
@@ -1566,7 +1567,7 @@ export function InboxPage() {
     try {
       await logout();
       toast.success("Logged out successfully");
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Logout failed");
@@ -1652,6 +1653,9 @@ export function InboxPage() {
               )}
             </Button>
             {/* User Menu - Mobile */}
+            {/* Theme Toggle Button */}
+            <ThemeToggle variant="dropdown" />
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

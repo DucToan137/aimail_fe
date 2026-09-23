@@ -23,6 +23,7 @@ import {
   Clock,
   X,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ export function MailboxList({
     try {
       await logout();
       toast.success("Logged out successfully");
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Logout failed");
@@ -265,29 +266,29 @@ export function MailboxList({
       </nav>
 
       {/* User Profile Section */}
-      <div className="p-3 border-t bg-white">
+      <div className="p-3 border-t bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 flex items-center justify-between gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-start h-auto p-2 hover:bg-gray-100"
+              className="flex-1 justify-start h-auto p-2 hover:bg-gray-100 dark:hover:bg-zinc-800/80"
             >
-              <div className="flex items-center gap-3 w-full">
+              <div className="flex items-center gap-3 w-full min-w-0">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>
                     {user ? getUserInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-left overflow-hidden">
-                  <p className="text-sm font-medium truncate">{user?.name}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">{user?.name}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                     {user?.email}
                   </p>
                 </div>
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.name}</p>
@@ -303,6 +304,7 @@ export function MailboxList({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <ThemeToggle />
       </div>
 
       {/* Delete Label Confirmation Dialog */}
