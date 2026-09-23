@@ -26,7 +26,17 @@ class ApiClient {
     };
 
     if (!skipAuth) {
-      const accessToken = cookieManager.getAccessToken();
+      let accessToken = cookieManager.getAccessToken();
+
+      // Proactively refresh if token is expired or expiring within 60s
+      if (accessToken && this.isTokenExpiringSoon(accessToken, 60)) {
+        // console.log('API Request - Access token is expiring soon, proactively refreshing...');
+        const refreshedToken = await this.refreshAccessToken();
+        if (refreshedToken) {
+          accessToken = refreshedToken;
+        }
+      }
+
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
         console.log('API Request - Authorization header set with token from:', accessToken.substring(0, 30) + '...');
@@ -56,10 +66,10 @@ class ApiClient {
       console.log('API Response - URL after redirects:', response.url);
 
       if (response.status === 401 && !skipAuth && !isRetry) {
+        console.log('API Response - 401 Unauthorized, attempting token refresh...');
         const newAccessToken = await this.refreshAccessToken();
         
         if (newAccessToken) {
-          cookieManager.setAccessToken(newAccessToken);
           return this.request<T>(endpoint, { ...config, isRetry: true });
         } else {
           this.handleAuthFailure();
@@ -89,10 +99,6 @@ class ApiClient {
       const contentType = response.headers.get('content-type');
       console.log('API Response - Content-Type:', contentType);
       
-      if (response.status === 204) {
-        return {} as T;
-      }
-      
       if (contentType && contentType.includes('application/json')) {
         const jsonResponse = await response.json();
         console.log('API Response - JSON Body:', jsonResponse);
@@ -117,6 +123,22 @@ class ApiClient {
     }
   }
 
+  private isTokenExpiringSoon(token: string, thresholdSeconds: number = 60): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      const base64Url = parts[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(base64));
+      if (!payload.exp) return false;
+      const expiryMs = payload.exp * 1000;
+      const nowMs = Date.now();
+      return (expiryMs - nowMs) <= (thresholdSeconds * 1000);
+    } catch {
+      return false;
+    }
+  }
+
   private async refreshAccessToken(): Promise<string | null> {
     if (this.refreshPromise) {
       return this.refreshPromise;
@@ -129,6 +151,7 @@ class ApiClient {
 
     this.refreshPromise = (async () => {
       try {
+        console.log('Refreshing token via /auth/refresh...');
         const response = await fetch(`${this.baseURL}/auth/refresh`, {
           method: 'POST',
           headers: {
@@ -138,11 +161,20 @@ class ApiClient {
         });
 
         if (!response.ok) {
-          throw new Error('Token refresh failed');
+          throw new Error(`Token refresh failed with status ${response.status}`);
         }
 
         const data = await response.json();
-        return data.accessToken;
+        if (data.accessToken) {
+          if (data.refreshToken) {
+            cookieManager.setTokens(data.accessToken, data.refreshToken);
+          } else {
+            cookieManager.setAccessToken(data.accessToken);
+          }
+          console.log('Token refreshed successfully');
+          return data.accessToken;
+        }
+        return null;
       } catch (error) {
         console.error('Token refresh error:', error);
         return null;
