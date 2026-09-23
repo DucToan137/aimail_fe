@@ -76,7 +76,7 @@ export function KanbanCard({
 
   if (isLoading) {
     return (
-      <div className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 space-y-3 mb-2">
+      <div className="p-3 bg-card rounded-lg shadow-sm border border-border space-y-3 mb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-6 w-6 rounded-full" />

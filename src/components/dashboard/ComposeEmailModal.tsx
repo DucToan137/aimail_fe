@@ -191,7 +191,7 @@ export function ComposeEmailModal({
             <Label htmlFor="body">Message</Label>
             <textarea
               id="body"
-              className="w-full min-h-[200px] px-3 py-2 text-sm border rounded-md resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full min-h-[200px] px-3 py-2 text-sm border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-md resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="Write your message here..."
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -206,12 +206,12 @@ export function ComposeEmailModal({
                 {attachments.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                    className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800"
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
                       <Paperclip className="h-4 w-4 shrink-0" />
-                      <span className="text-sm truncate">{file.name}</span>
-                      <span className="text-xs text-gray-500 shrink-0">
+                      <span className="text-sm truncate text-zinc-900 dark:text-zinc-100">{file.name}</span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0">
                         ({formatFileSize(file.size)})
                       </span>
                     </div>

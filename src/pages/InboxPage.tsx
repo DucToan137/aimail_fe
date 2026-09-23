@@ -1586,9 +1586,9 @@ export function InboxPage() {
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-background text-foreground">
       {/* Mobile Header */}
-      <div className="lg:hidden border-b bg-white p-4 flex items-center gap-3">
+      <div className="lg:hidden border-b border-border bg-background p-4 flex items-center gap-3">
         {showEmailDetail ? (
           <>
             <Button
@@ -2006,7 +2006,7 @@ export function InboxPage() {
             {/* Kanban Board */}
             <div className="flex-1 min-h-0">
               {isSearchMode ? (
-                <div className="flex-1 min-h-0 bg-white">
+                <div className="flex-1 min-h-0 bg-background">
                   <EmailList
                     emails={emails}
                     selectedEmailId={selectedEmailId}

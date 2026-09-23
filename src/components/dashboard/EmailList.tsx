@@ -177,10 +177,10 @@ export function EmailList({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white border-r">
+    <div className="h-full flex flex-col bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800">
       {/* Action Bar */}
       {(!hideActionButtons || selectedIds.size > 0) && (
-        <div className="p-2 sm:p-4 border-b space-y-2">
+        <div className="p-2 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 space-y-2 bg-white dark:bg-zinc-950">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {!hideActionButtons && (
               <Button onClick={onCompose} size="sm" className="gap-1.5">
@@ -203,7 +203,7 @@ export function EmailList({
 
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span className="text-xs sm:text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
                 {selectedIds.size} selected
               </span>
 
@@ -256,9 +256,9 @@ export function EmailList({
 
       {/* Email List */}
       <div className="flex-1 overflow-y-auto">
-        <div className="divide-y">
+        <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {!isLoading && (
-            <div className="px-2 sm:px-4 py-2 bg-gray-50 border-b flex items-center gap-2 sm:gap-3">
+            <div className="px-2 sm:px-4 py-2 bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-2 sm:gap-3">
               <Checkbox
                 checked={
                   selectedIds.size === emails.length && emails.length > 0
@@ -266,7 +266,7 @@ export function EmailList({
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all emails"
               />
-              <span className="text-xs sm:text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
                 {emails.length} {emails.length === 1 ? "email" : "emails"}
               </span>
             </div>
@@ -275,12 +275,12 @@ export function EmailList({
           {isLoading ? (
             <div className="p-8 text-center">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-blue-600" />
-              <p className="mt-2 text-sm text-gray-600">Loading...</p>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Loading...</p>
             </div>
           ) : null}
 
           {!isLoading && emails.length === 0 ? (
-            <div className="p-4 sm:p-8 text-center text-gray-500">
+            <div className="p-4 sm:p-8 text-center text-zinc-500 dark:text-zinc-400">
               <Mail className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
               <p className="text-xs sm:text-sm">No emails in this folder</p>
             </div>
@@ -299,10 +299,10 @@ export function EmailList({
                   key={email.id}
                   className={cn(
                     "px-2 sm:px-4 py-2 sm:py-3 cursor-pointer transition-colors border-l-4",
-                    isSelected && "bg-blue-50 hover:bg-blue-50",
+                    isSelected && "bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-50 dark:hover:bg-blue-950/50",
                     !email.isRead
-                      ? "bg-blue-50/30 border-l-blue-500 font-medium"
-                      : "border-l-transparent hover:bg-gray-50",
+                      ? "bg-blue-50/30 dark:bg-blue-950/20 border-l-blue-500 font-medium"
+                      : "border-l-transparent hover:bg-zinc-50 dark:hover:bg-zinc-900/50",
                   )}
                   onClick={() => onSelectEmail(email.id)}
                 >
@@ -331,7 +331,7 @@ export function EmailList({
                           "h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors",
                           email.isStarred
                             ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-400 hover:text-yellow-400",
+                            : "text-zinc-400 dark:text-zinc-600 hover:text-yellow-400",
                         )}
                       />
                     </button>
@@ -341,11 +341,11 @@ export function EmailList({
                       {isSkeleton ? (
                         <div className="animate-pulse">
                           <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
-                            <div className="h-4 w-32 bg-gray-200 rounded" />
-                            <div className="ml-auto h-3 w-12 bg-gray-200 rounded" />
+                            <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                            <div className="ml-auto h-3 w-12 bg-zinc-200 dark:bg-zinc-800 rounded" />
                           </div>
-                          <div className="h-4 w-3/4 bg-gray-200 rounded mb-1" />
-                          <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                          <div className="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded mb-1" />
+                          <div className="h-3 w-1/2 bg-zinc-200 dark:bg-zinc-800 rounded" />
                         </div>
                       ) : (
                         <>
@@ -354,25 +354,25 @@ export function EmailList({
                               className={cn(
                                 "text-xs sm:text-sm truncate flex-1 min-w-0",
                                 !email.isRead
-                                  ? "font-semibold text-gray-900"
-                                  : "text-gray-700",
+                                  ? "font-semibold text-zinc-900 dark:text-zinc-100"
+                                  : "text-zinc-700 dark:text-zinc-300",
                               )}
                             >
                               {email.from.name}
                             </span>
                             <div className="flex items-center gap-1 shrink-0">
                               {email.hasAttachments && (
-                                <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-400" />
+                                <Paperclip className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-zinc-400 dark:text-zinc-500" />
                               )}
                               {email.snoozedUntil ? (
                                 <>
                                   <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500" />
-                                  <span className="text-[10px] sm:text-xs text-blue-600 whitespace-nowrap font-medium">
+                                  <span className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap font-medium">
                                     {formatSnoozeTime(email.snoozedUntil)}
                                   </span>
                                 </>
                               ) : (
-                                <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
+                                <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                                   {formatTime(email.timestamp)}
                                 </span>
                               )}
@@ -382,8 +382,8 @@ export function EmailList({
                             className={cn(
                               "text-xs sm:text-sm truncate mb-0.5 sm:mb-1",
                               !email.isRead
-                                ? "font-semibold text-gray-900"
-                                : "text-gray-600",
+                                ? "font-semibold text-zinc-900 dark:text-zinc-100"
+                                : "text-zinc-600 dark:text-zinc-400",
                             )}
                           >
                             {email.subject}
@@ -392,8 +392,8 @@ export function EmailList({
                             className={cn(
                               "text-xs sm:text-sm truncate",
                               !email.isRead
-                                ? "text-gray-700 font-medium"
-                                : "text-gray-500",
+                                ? "text-zinc-700 dark:text-zinc-300 font-medium"
+                                : "text-zinc-500 dark:text-zinc-400",
                             )}
                           >
                             {email.preview}
@@ -409,7 +409,7 @@ export function EmailList({
                                 );
                                 setSummaryEmailSubject(email.subject);
                               }}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-gradient-t-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded transition-colors"
+                              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 border border-purple-200 dark:border-purple-800/60 rounded transition-colors"
                             >
                               <Sparkles className="h-3 w-3" />
                               AI Summary
@@ -424,9 +424,9 @@ export function EmailList({
             })}
 
           {!isLoading && hasMore && (
-            <div className="p-4 text-center border-t bg-gray-50">
+            <div className="p-4 text-center border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60">
               {isLoadingMore ? (
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center justify-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent text-blue-600" />
                   Loading more...
                 </div>

@@ -198,7 +198,7 @@ export function KanbanColumn({
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 space-y-3"
+                  className="p-3 bg-card rounded-lg shadow-sm border border-border space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">

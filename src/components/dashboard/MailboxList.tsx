@@ -124,9 +124,9 @@ export function MailboxList({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 border-r">
-      <div className="p-4 border-b bg-white">
-        <h2 className="font-semibold text-lg">Mailboxes</h2>
+    <div className="h-full flex flex-col bg-[#fafafa] dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800">
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+        <h2 className="font-semibold text-lg tracking-tight">Mailboxes</h2>
       </div>
       <nav className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
@@ -134,7 +134,7 @@ export function MailboxList({
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="h-10 bg-gray-200 rounded-lg animate-pulse"
+                className="h-10 bg-zinc-200 dark:bg-zinc-800/80 rounded-lg animate-pulse"
               />
             ))}
           </div>
@@ -151,8 +151,8 @@ export function MailboxList({
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors",
                       isSelected
-                        ? "bg-blue-100 text-blue-900 font-medium"
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 font-medium"
+                        : "text-zinc-700 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-950 dark:hover:text-zinc-100",
                     )}
                     aria-label={`${mailbox.name} mailbox${
                       mailbox.unreadCount
@@ -169,7 +169,9 @@ export function MailboxList({
                         variant="secondary"
                         className={cn(
                           "ml-auto",
-                          isSelected ? "bg-blue-200 text-blue-900" : ""
+                          isSelected
+                            ? "bg-blue-200 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200"
+                            : "",
                         )}
                       >
                         {mailbox.unreadCount}
@@ -185,7 +187,7 @@ export function MailboxList({
                 <li>
                   <button
                     onClick={() => setShowMore(!showMore)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-950 dark:hover:text-zinc-100 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {showMore ? (
@@ -212,8 +214,8 @@ export function MailboxList({
                             className={cn(
                               "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors",
                               isSelected
-                                ? "bg-blue-100 text-blue-900 font-medium"
-                                : "text-gray-700 hover:bg-gray-100"
+                                ? "bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 font-medium"
+                                : "text-zinc-700 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-950 dark:hover:text-zinc-100",
                             )}
                             aria-label={`${mailbox.name} mailbox${
                               mailbox.unreadCount
@@ -231,8 +233,8 @@ export function MailboxList({
                                   variant="secondary"
                                   className={cn(
                                     isSelected
-                                      ? "bg-blue-200 text-blue-900"
-                                      : ""
+                                      ? "bg-blue-200 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200"
+                                      : "",
                                   )}
                                 >
                                   {mailbox.unreadCount}
@@ -249,10 +251,10 @@ export function MailboxList({
                                   name: mailbox.name,
                                 });
                               }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-950/50 rounded"
                               title="Delete label"
                             >
-                              <X className="h-3 w-3 text-red-600" />
+                              <X className="h-3 w-3 text-red-600 dark:text-red-400" />
                             </button>
                           )}
                         </div>
@@ -266,12 +268,12 @@ export function MailboxList({
       </nav>
 
       {/* User Profile Section */}
-      <div className="p-3 border-t bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 flex items-center justify-between gap-2">
+      <div className="p-3 border-t bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex-1 justify-start h-auto p-2 hover:bg-gray-100 dark:hover:bg-zinc-800/80"
+              className="flex-1 justify-start h-auto p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/80"
             >
               <div className="flex items-center gap-3 w-full min-w-0">
                 <Avatar className="h-8 w-8">

@@ -68,13 +68,13 @@ function RecipientsList({
     to.length > 1 || (cc && cc.length > 0) || (bcc && bcc.length > 0);
 
   return (
-    <div className="text-xs sm:text-sm text-gray-600">
+    <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
       {!showAll ? (
         <div className="flex items-center gap-1">
-          <span className="text-gray-500">
+          <span className="text-zinc-500 dark:text-zinc-400">
             {mailboxId === "SENT" ? "To: " : "To: "}
           </span>
-          <span>
+          <span className="text-zinc-700 dark:text-zinc-300">
             {to.length > 0 && `${to[0].name} <${to[0].email}>`}
             {to.length > 1 && `, +${to.length - 1}`}
             {cc && cc.length > 0 && to.length === 1 && `, +${cc.length}`}
@@ -87,33 +87,33 @@ function RecipientsList({
           {hasMultipleRecipients && (
             <button
               onClick={() => setShowAll(true)}
-              className="ml-1 hover:bg-gray-200 rounded p-0.5 transition-colors"
+              className="ml-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded p-0.5 transition-colors"
             >
-              <ChevronDown className="h-3 w-3 text-gray-500" />
+              <ChevronDown className="h-3 w-3 text-zinc-500 dark:text-zinc-400" />
             </button>
           )}
         </div>
       ) : (
         <div className="space-y-1">
           <div className="flex items-center gap-1">
-            <span className="text-gray-500">To: </span>
+            <span className="text-zinc-500 dark:text-zinc-400">To: </span>
             <button
               onClick={() => setShowAll(false)}
-              className="ml-auto hover:bg-gray-200 rounded p-0.5 transition-colors"
+              className="ml-auto hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded p-0.5 transition-colors"
             >
-              <ChevronDown className="h-3 w-3 text-gray-500 rotate-180" />
+              <ChevronDown className="h-3 w-3 text-zinc-500 dark:text-zinc-400 rotate-180" />
             </button>
           </div>
           {to.map((recipient, idx) => (
-            <div key={idx} className="pl-6">
+            <div key={idx} className="pl-6 text-zinc-700 dark:text-zinc-300">
               {recipient.name} &lt;{recipient.email}&gt;
             </div>
           ))}
           {cc && cc.length > 0 && (
             <>
-              <div className="text-gray-500">Cc: </div>
+              <div className="text-zinc-500 dark:text-zinc-400">Cc: </div>
               {cc.map((recipient, idx) => (
-                <div key={idx} className="pl-6">
+                <div key={idx} className="pl-6 text-zinc-700 dark:text-zinc-300">
                   {recipient.name} &lt;{recipient.email}&gt;
                 </div>
               ))}
@@ -121,9 +121,9 @@ function RecipientsList({
           )}
           {bcc && bcc.length > 0 && (
             <>
-              <div className="text-gray-500">Bcc: </div>
+              <div className="text-zinc-500 dark:text-zinc-400">Bcc: </div>
               {bcc.map((recipient, idx) => (
-                <div key={idx} className="pl-6">
+                <div key={idx} className="pl-6 text-zinc-700 dark:text-zinc-300">
                   {recipient.name} &lt;{recipient.email}&gt;
                 </div>
               ))}
@@ -162,13 +162,15 @@ export function EmailDetail({
 
   if (!email) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-gray-50 p-8">
-        <Mail className="h-16 w-16 text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-600 mb-2">
-          No email selected
+      <div className="h-full flex flex-col items-center justify-center bg-[#fafafa] dark:bg-zinc-950 p-8 transition-colors">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 flex items-center justify-center mb-4 text-zinc-400 dark:text-zinc-600 shadow-2xs">
+          <Mail className="h-8 w-8" />
+        </div>
+        <h3 className="text-base font-medium text-zinc-800 dark:text-zinc-200 mb-1">
+          Chưa chọn email nào
         </h3>
-        <p className="text-sm text-gray-500 text-center">
-          Select an email from the list to view its contents
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center max-w-xs leading-relaxed">
+          Chọn một email từ danh sách bên cạnh để xem nội dung chi tiết
         </p>
       </div>
     );
@@ -176,23 +178,23 @@ export function EmailDetail({
 
   if (email && (!email.messages || email.messages.length === 0)) {
     return (
-      <div className="h-full flex flex-col bg-white">
-        <div className="p-4 border-b">
-          <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse mb-3" />
-          <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
+      <div className="h-full flex flex-col bg-white dark:bg-zinc-950">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="h-6 w-3/4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-3" />
+          <div className="h-4 w-1/3 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
         </div>
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
-            <div className="border rounded-lg p-4">
+            <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50/50 dark:bg-zinc-900/40">
               <div className="flex items-center gap-4 mb-4">
-                <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
+                <div className="h-10 w-10 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 <div className="flex-1">
-                  <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse mb-2" />
-                  <div className="h-3 w-1/4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-1/3 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-2" />
+                  <div className="h-3 w-1/4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 </div>
-                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
               </div>
-              <div className="h-40 bg-gray-100 rounded animate-pulse" />
+              <div className="h-40 bg-zinc-100 dark:bg-zinc-900 rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -235,9 +237,9 @@ export function EmailDetail({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white dark:bg-zinc-950">
       {/* Action Bar */}
-      <div className="p-2 sm:p-4 border-b flex items-center gap-1.5 sm:gap-2 flex-wrap">
+      <div className="p-2 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center gap-1.5 sm:gap-2 flex-wrap">
         <Button
           onClick={onReply}
           variant="outline"
@@ -381,7 +383,7 @@ export function EmailDetail({
 
         <button
           onClick={onToggleStar}
-          className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-md transition-colors"
+          className="p-1.5 sm:p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
           aria-label={email.isStarred ? "Unstar email" : "Star email"}
         >
           <Star
@@ -389,7 +391,7 @@ export function EmailDetail({
               "h-3.5 w-3.5 sm:h-4 sm:w-4",
               email.isStarred
                 ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-400",
+                : "text-zinc-400 dark:text-zinc-600 hover:text-yellow-400",
             )}
           />
         </button>
@@ -399,7 +401,7 @@ export function EmailDetail({
       <div className="flex-1 overflow-y-auto">
         <div className="p-3 sm:p-6">
           {/* Subject */}
-          <h1 className="text-lg sm:text-2xl font-semibold mb-4 sm:mb-6">
+          <h1 className="text-lg sm:text-2xl font-semibold mb-4 sm:mb-6 text-zinc-950 dark:text-zinc-50">
             {email.subject}
           </h1>
 
@@ -411,23 +413,23 @@ export function EmailDetail({
                   className={cn(
                     "border rounded-lg p-4",
                     index === 0
-                      ? "border-blue-200 bg-blue-50/30"
-                      : "border-gray-200",
+                      ? "border-blue-200 dark:border-blue-900/60 bg-blue-50/20 dark:bg-blue-950/20"
+                      : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40",
                   )}
                 >
                   <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 mb-4">
                     <div className="flex gap-2">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-blue-100 text-blue-700 text-xs sm:text-sm">
+                        <AvatarFallback className="bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-semibold">
                           {getInitials(message.from.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-1 sm:gap-2 mb-1 flex-wrap">
-                          <span className="font-medium text-sm sm:text-base text-gray-900">
+                          <span className="font-medium text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
                             {message.from.name}
                           </span>
-                          <span className="text-xs sm:text-sm text-gray-500 truncate">
+                          <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 truncate">
                             &lt;{message.from.email}&gt;
                           </span>
                         </div>
@@ -439,14 +441,14 @@ export function EmailDetail({
                         />
                       </div>
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-500 whitespace-nowrap shrink-0">
+                    <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap shrink-0">
                       {formatDateTime(message.date)}
                     </div>
                   </div>
 
-                  {index > 0 && <Separator className="mb-4" />}
+                  {index > 0 && <Separator className="mb-4 bg-zinc-200 dark:bg-zinc-800" />}
 
-                  <div className="prose prose-sm max-w-none text-sm sm:text-base">
+                  <div className="prose prose-sm max-w-none text-sm sm:text-base text-zinc-800 dark:text-zinc-200">
                     {message.htmlBody ? (
                       <div
                         dangerouslySetInnerHTML={{ __html: message.htmlBody }}
@@ -456,32 +458,32 @@ export function EmailDetail({
                         {message.textBody}
                       </div>
                     ) : (
-                      <div className="text-gray-500 italic">
+                      <div className="text-zinc-500 dark:text-zinc-400 italic">
                         {message.snippet}
                       </div>
                     )}
                   </div>
 
                   {message.attachments && message.attachments.length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                    <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                      <h4 className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                         Attachments ({message.attachments.length})
                       </h4>
                       <div className="space-y-2">
                         {message.attachments.map((attachment) => (
                           <div
                             key={attachment.id}
-                            className="flex items-center justify-between p-2 bg-white rounded border"
+                            className="flex items-center justify-between p-2 sm:p-2.5 bg-zinc-50 dark:bg-zinc-900/80 rounded-lg border border-zinc-200 dark:border-zinc-800"
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="shrink-0 w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                                <Download className="h-4 w-4 text-blue-600" />
+                              <div className="shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-950/80 rounded flex items-center justify-center">
+                                <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                                <p className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                                   {attachment.name}
                                 </p>
-                                <p className="text-[10px] sm:text-xs text-gray-500">
+                                <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
                                   {attachment.type}
                                 </p>
                               </div>
@@ -545,18 +547,18 @@ export function EmailDetail({
                   </Avatar>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-1 sm:gap-2 mb-1 flex-wrap">
-                      <span className="font-medium text-sm sm:text-base text-gray-900">
+                      <span className="font-medium text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
                         {email.from.name}
                       </span>
-                      <span className="text-xs sm:text-sm text-gray-500 truncate">
+                      <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 truncate">
                         &lt;{email.from.email}&gt;
                       </span>
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-600 space-y-1">
+                    <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
                       <div>
-                        <span className="text-gray-500">To: </span>
+                        <span className="text-zinc-500 dark:text-zinc-400">To: </span>
                         {email.to.map((recipient, idx) => (
-                          <span key={idx}>
+                          <span key={idx} className="text-zinc-700 dark:text-zinc-300">
                             {idx > 0 && ", "}
                             {recipient.name} &lt;{recipient.email}&gt;
                           </span>
@@ -564,9 +566,9 @@ export function EmailDetail({
                       </div>
                       {email.cc && email.cc.length > 0 && (
                         <div>
-                          <span className="text-gray-500">Cc: </span>
+                          <span className="text-zinc-500 dark:text-zinc-400">Cc: </span>
                           {email.cc.map((recipient, idx) => (
-                            <span key={idx}>
+                            <span key={idx} className="text-zinc-700 dark:text-zinc-300">
                               {idx > 0 && ", "}
                               {recipient.name} &lt;{recipient.email}&gt;
                             </span>
@@ -576,15 +578,15 @@ export function EmailDetail({
                     </div>
                   </div>
                 </div>
-                <div className="text-xs sm:text-sm text-gray-500 whitespace-nowrap shrink-0">
+                <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap shrink-0">
                   {formatDateTime(email.timestamp)}
                 </div>
               </div>
 
-              <Separator className="mb-4 sm:mb-6" />
+              <Separator className="mb-4 sm:mb-6 bg-zinc-200 dark:bg-zinc-800" />
 
               {/* Email Body */}
-              <div className="prose prose-sm max-w-none mb-4 sm:mb-6 text-sm sm:text-base">
+              <div className="prose prose-sm max-w-none mb-4 sm:mb-6 text-sm sm:text-base text-zinc-800 dark:text-zinc-200">
                 {email.htmlBody ? (
                   <div dangerouslySetInnerHTML={{ __html: email.htmlBody }} />
                 ) : (
@@ -595,32 +597,32 @@ export function EmailDetail({
               {/* Attachments */}
               {email.attachments && email.attachments.length > 0 && (
                 <>
-                  <Separator className="mb-4 sm:mb-6" />
+                  <Separator className="mb-4 sm:mb-6 bg-zinc-200 dark:bg-zinc-800" />
                   <div>
-                    <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
+                    <h3 className="text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 sm:mb-3">
                       Attachments ({email.attachments.length})
                     </h3>
                     <div className="space-y-2">
                       {email.attachments.map((attachment) => (
                         <div
                           key={attachment.id}
-                          className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg border"
+                          className="flex items-center justify-between p-2 sm:p-3 bg-zinc-50 dark:bg-zinc-900/80 rounded-lg border border-zinc-200 dark:border-zinc-800"
                         >
                           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                            <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded flex items-center justify-center">
-                              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                            <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-950/80 rounded flex items-center justify-center">
+                              <Download className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                              <p className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                                 {attachment.name}
                               </p>
                               {attachment.size && (
-                                <p className="text-[10px] sm:text-xs text-gray-500">
+                                <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
                                   {formatFileSize(attachment.size)}
                                 </p>
                               )}
                               {!attachment.size && attachment.type && (
-                                <p className="text-[10px] sm:text-xs text-gray-500">
+                                <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">
                                   {attachment.type}
                                 </p>
                               )}

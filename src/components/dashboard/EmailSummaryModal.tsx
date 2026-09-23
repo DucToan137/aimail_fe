@@ -110,16 +110,16 @@ export function EmailSummaryModal({
               {/* Bullet points */}
               {summary.bullets && summary.bullets.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
                     🔑 Key Points
                   </h3>
                   <ul className="space-y-2">
                     {summary.bullets.map((bullet, index) => (
                       <li
                         key={index}
-                        className="flex items-start gap-2 text-sm text-gray-700"
+                        className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300"
                       >
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-semibold mt-0.5">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-semibold mt-0.5">
                           {index + 1}
                         </span>
                         <span className="flex-1 pt-0.5">{bullet}</span>
@@ -132,11 +132,11 @@ export function EmailSummaryModal({
               {/* Full summary */}
               {summary.summary && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
                     📄 Full Summary
                   </h3>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
                       {summary.summary}
                     </p>
                   </div>
@@ -144,20 +144,20 @@ export function EmailSummaryModal({
               )}
 
               {/* Metadata */}
-              <div className="border-t pt-4 space-y-2 text-xs text-gray-500">
+              <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-2 text-xs text-zinc-500 dark:text-zinc-400">
                 {summary.from && (
                   <div>
-                    <span className="font-semibold">From:</span> {summary.from}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">From:</span> {summary.from}
                   </div>
                 )}
                 {summary.to && (
                   <div>
-                    <span className="font-semibold">To:</span> {summary.to}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">To:</span> {summary.to}
                   </div>
                 )}
                 {summary.date && (
                   <div>
-                    <span className="font-semibold">Date:</span> {summary.date}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">Date:</span> {summary.date}
                   </div>
                 )}
               </div>
