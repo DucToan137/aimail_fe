@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { GoogleCallbackPage } from './pages/GoogleCallbackPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { LandingPage } from './pages/LandingPage';
 import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
@@ -40,8 +41,8 @@ function App() {
           
           <Route path="/inbox" element={<Navigate to="/mailbox/INBOX" replace />} />
           
-          {/* Default Route */}
-          <Route path="/" element={<Navigate to="/mailbox/INBOX" replace />} />
+          {/* Landing Page (Root) */}
+          <Route path="/" element={<LandingPage />} />
 
           {/* Not Found Route */}
           <Route path="*" element={<NotFoundPage />} />
