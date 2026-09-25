@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Email } from "@/types/email";
 import {
   Reply,
@@ -21,7 +23,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { emailService } from "@/services/emailService";
 import { toast } from "sonner";
-import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,19 +61,22 @@ function RecipientsList({
   to: Array<{ name: string; email: string }>;
   cc?: Array<{ name: string; email: string }>;
   bcc?: Array<{ name: string; email: string }>;
-  mailboxId: string;
+  mailboxId?: string;
 }) {
+  const { language } = useLanguage();
   const [showAll, setShowAll] = useState(false);
 
   const hasMultipleRecipients =
     to.length > 1 || (cc && cc.length > 0) || (bcc && bcc.length > 0);
+
+  const toLabel = language === "vi" ? (mailboxId === "SENT" ? "Đến: " : "Đến: ") : "To: ";
 
   return (
     <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
       {!showAll ? (
         <div className="flex items-center gap-1">
           <span className="text-zinc-500 dark:text-zinc-400">
-            {mailboxId === "SENT" ? "To: " : "To: "}
+            {toLabel}
           </span>
           <span className="text-zinc-700 dark:text-zinc-300">
             {to.length > 0 && `${to[0].name} <${to[0].email}>`}
@@ -96,7 +100,7 @@ function RecipientsList({
       ) : (
         <div className="space-y-1">
           <div className="flex items-center gap-1">
-            <span className="text-zinc-500 dark:text-zinc-400">To: </span>
+            <span className="text-zinc-500 dark:text-zinc-400">{toLabel}</span>
             <button
               onClick={() => setShowAll(false)}
               className="ml-auto hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded p-0.5 transition-colors"
@@ -150,6 +154,7 @@ export function EmailDetail({
   onSnooze,
   onUnsnooze,
 }: EmailDetailProps) {
+  const { t, language } = useLanguage();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -167,10 +172,12 @@ export function EmailDetail({
           <Mail className="h-8 w-8" />
         </div>
         <h3 className="text-base font-medium text-zinc-800 dark:text-zinc-200 mb-1">
-          Chưa chọn email nào
+          {language === "vi" ? "Chưa chọn email nào" : "No email selected"}
         </h3>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center max-w-xs leading-relaxed">
-          Chọn một email từ danh sách bên cạnh để xem nội dung chi tiết
+          {language === "vi"
+            ? "Chọn một email từ danh sách bên cạnh để xem nội dung chi tiết"
+            : "Select an email from the list to view its contents"}
         </p>
       </div>
     );
@@ -204,7 +211,7 @@ export function EmailDetail({
 
   const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString("en-US", {
+    return date.toLocaleString(language === "vi" ? "vi-VN" : "en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
@@ -247,7 +254,7 @@ export function EmailDetail({
           className="gap-1.5"
         >
           <Reply className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Reply</span>
+          <span className="hidden sm:inline">{t("email.reply")}</span>
         </Button>
         <Button
           onClick={onReplyAll}
@@ -256,7 +263,7 @@ export function EmailDetail({
           className="gap-1.5"
         >
           <ReplyAll className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden md:inline">Reply All</span>
+          <span className="hidden md:inline">{t("email.replyAll")}</span>
         </Button>
         <Button
           onClick={onForward}
@@ -265,19 +272,13 @@ export function EmailDetail({
           className="gap-1.5"
         >
           <Forward className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden md:inline">Forward</span>
+          <span className="hidden md:inline">{t("email.forward")}</span>
         </Button>
 
         {isSnoozedMailbox ? (
           <Button
             onClick={() => {
-              // console.log('Unsnooze button clicked');
-              // console.log('Email object:', email);
-              // console.log('workflowEmailId:', email?.workflowEmailId);
-              // console.log('onUnsnooze function:', onUnsnooze);
-
               if (onUnsnooze && email && email.workflowEmailId) {
-                // console.log('Calling onUnsnooze with ID:', email.workflowEmailId);
                 onUnsnooze(email.workflowEmailId);
               } else {
                 console.error("Cannot unsnooze:", {
@@ -287,7 +288,9 @@ export function EmailDetail({
                   email: email,
                 });
                 toast.error(
-                  `Unable to unsnooze: ${!email?.workflowEmailId ? "missing workflow ID" : "missing callback"}`,
+                  language === "vi"
+                    ? "Không thể hủy tạm ẩn"
+                    : `Unable to unsnooze: ${!email?.workflowEmailId ? "missing workflow ID" : "missing callback"}`,
                 );
               }
             }}
@@ -296,7 +299,9 @@ export function EmailDetail({
             className="gap-1.5"
           >
             <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="hidden md:inline">Unsnooze</span>
+            <span className="hidden md:inline">
+              {language === "vi" ? "Hủy tạm ẩn" : "Unsnooze"}
+            </span>
           </Button>
         ) : (
           onSnooze && (
@@ -307,7 +312,9 @@ export function EmailDetail({
               className="gap-1.5"
             >
               <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden md:inline">Snooze</span>
+              <span className="hidden md:inline">
+                {language === "vi" ? "Tạm ẩn" : "Snooze"}
+              </span>
             </Button>
           )
         )}
@@ -321,7 +328,9 @@ export function EmailDetail({
               className="gap-1.5 text-red-600 hover:text-red-700"
             >
               <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden lg:inline">Delete Forever</span>
+              <span className="hidden lg:inline">
+                {language === "vi" ? "Xóa vĩnh viễn" : "Delete Forever"}
+              </span>
             </Button>
             <Button
               onClick={onMoveToInbox}
@@ -330,7 +339,9 @@ export function EmailDetail({
               className="gap-1.5"
             >
               <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden lg:inline">Move to Inbox</span>
+              <span className="hidden lg:inline">
+                {language === "vi" ? "Chuyển vào Hộp thư" : "Move to Inbox"}
+              </span>
             </Button>
           </>
         ) : (
@@ -341,7 +352,7 @@ export function EmailDetail({
             className="gap-1.5"
           >
             <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="hidden lg:inline">Delete</span>
+            <span className="hidden lg:inline">{t("common.delete")}</span>
           </Button>
         )}
 
@@ -353,7 +364,13 @@ export function EmailDetail({
         >
           <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="hidden lg:inline">
-            {email.isRead ? "Mark Unread" : "Mark Read"}
+            {email.isRead
+              ? language === "vi"
+                ? "Đánh dấu chưa đọc"
+                : "Mark Unread"
+              : language === "vi"
+              ? "Đánh dấu đã đọc"
+              : "Mark Read"}
           </span>
         </Button>
 
@@ -364,7 +381,7 @@ export function EmailDetail({
           className="gap-1.5 bg-linear-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200 text-purple-700 hover:text-purple-800"
         >
           <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">AI Summary</span>
+          <span className="hidden sm:inline">{t("email.aiSummary")}</span>
         </Button>
 
         <Button
@@ -375,10 +392,12 @@ export function EmailDetail({
           variant="outline"
           size="sm"
           className="gap-1.5"
-          title="Open in Gmail"
+          title={language === "vi" ? "Mở trong Gmail" : "Open in Gmail"}
         >
           <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Open in Gmail</span>
+          <span className="hidden sm:inline">
+            {language === "vi" ? "Mở trong Gmail" : "Open in Gmail"}
+          </span>
         </Button>
 
         <button
@@ -665,7 +684,9 @@ export function EmailDetail({
                             }}
                           >
                             <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                            <span className="hidden sm:inline">Download</span>
+                            <span className="hidden sm:inline">
+                              {language === "vi" ? "Tải xuống" : "Download"}
+                            </span>
                           </Button>
                         </div>
                       ))}
@@ -682,14 +703,17 @@ export function EmailDetail({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {language === "vi" ? "Xóa vĩnh viễn?" : "Delete Forever?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this email. This action cannot be
-              undone.
+              {language === "vi"
+                ? "Hành động này sẽ xóa vĩnh viễn thư này. Bạn không thể hoàn tác."
+                : "This will permanently delete this email. This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 onPermanentDelete?.();
@@ -697,7 +721,7 @@ export function EmailDetail({
               }}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete Forever
+              {language === "vi" ? "Xóa vĩnh viễn" : "Delete Forever"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

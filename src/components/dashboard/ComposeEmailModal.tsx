@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -33,6 +34,7 @@ export function ComposeEmailModal({
   defaultCc = '',
   defaultBcc = '',
 }: ComposeEmailModalProps) {
+  const { t, language } = useLanguage();
   const [to, setTo] = useState(defaultTo);
   const [cc, setCc] = useState(defaultCc);
   const [bcc, setBcc] = useState(defaultBcc);
@@ -58,12 +60,20 @@ export function ComposeEmailModal({
   const handleSend = async () => {
     const hasRecipients = to.trim() || cc.trim() || bcc.trim();
     if (!hasRecipients) {
-      toast.error('Please specify at least one recipient (To, Cc, or Bcc)');
+      toast.error(
+        language === 'vi'
+          ? 'Vui lòng nhập ít nhất một người nhận (Đến, Cc, hoặc Bcc)'
+          : 'Please specify at least one recipient (To, Cc, or Bcc)',
+      );
       return;
     }
     
     if (!subject) {
-      toast.error('Please fill in subject');
+      toast.error(
+        language === 'vi'
+          ? 'Vui lòng nhập chủ đề thư'
+          : 'Please fill in subject',
+      );
       return;
     }
 
@@ -116,13 +126,13 @@ export function ComposeEmailModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>New Message</DialogTitle>
+          <DialogTitle>{language === 'vi' ? 'Thư mới' : 'New Message'}</DialogTitle>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-4 py-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="to">To</Label>
+              <Label htmlFor="to">{language === 'vi' ? 'Đến' : 'To'}</Label>
               <div className="flex gap-2 text-sm">
                 {!showCc && (
                   <button
@@ -178,21 +188,21 @@ export function ComposeEmailModal({
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject">{language === 'vi' ? 'Chủ đề' : 'Subject'}</Label>
             <Input
               id="subject"
-              placeholder="Email subject"
+              placeholder={language === 'vi' ? 'Chủ đề thư' : 'Email subject'}
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="body">Message</Label>
+            <Label htmlFor="body">{language === 'vi' ? 'Nội dung' : 'Message'}</Label>
             <textarea
               id="body"
               className="w-full min-h-[200px] px-3 py-2 text-sm border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-md resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder="Write your message here..."
+              placeholder={language === 'vi' ? 'Nhập nội dung thư ở đây...' : 'Write your message here...'}
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
@@ -201,7 +211,7 @@ export function ComposeEmailModal({
           {/* Attachments */}
           {attachments.length > 0 && (
             <div className="space-y-2">
-              <Label>Attachments</Label>
+              <Label>{language === 'vi' ? 'Tệp đính kèm' : 'Attachments'}</Label>
               <div className="space-y-1">
                 {attachments.map((file, index) => (
                   <div
@@ -246,15 +256,21 @@ export function ComposeEmailModal({
               className="gap-2"
             >
               <Paperclip className="h-4 w-4" />
-              Attach
+              {language === 'vi' ? 'Đính kèm' : 'Attach'}
             </Button>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isSending}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleSend} disabled={isSending}>
-              {isSending ? 'Sending...' : 'Send'}
+              {isSending
+                ? language === 'vi'
+                  ? 'Đang gửi...'
+                  : 'Sending...'
+                : language === 'vi'
+                ? 'Gửi'
+                : 'Send'}
             </Button>
           </div>
         </DialogFooter>

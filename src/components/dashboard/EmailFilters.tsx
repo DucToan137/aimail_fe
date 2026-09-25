@@ -10,6 +10,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface EmailFilterOptions {
   sort: "newest" | "oldest" | "sender";
@@ -32,6 +33,7 @@ export function EmailFilters({
   className,
   compact,
 }: EmailFiltersProps) {
+  const { language } = useLanguage();
   const hasActiveFilters = filters.unreadOnly || filters.hasAttachments;
 
   const handleSortChange = (sort: "newest" | "oldest" | "sender") => {
@@ -57,32 +59,34 @@ export function EmailFilters({
             ) : (
               <SortAsc className="h-4 w-4" />
             )}
-            <span className={cn("hidden", !compact && "sm:inline")}>Sort</span>
+            <span className={cn("hidden", !compact && "sm:inline")}>
+              {language === "vi" ? "Sắp xếp" : "Sort"}
+            </span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+          <DropdownMenuLabel>{language === "vi" ? "Sắp xếp theo" : "Sort by"}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => handleSortChange("newest")}
             className={cn(filters.sort === "newest" && "bg-accent")}
           >
             <SortDesc className="h-4 w-4 mr-2" />
-            Newest First
+            {language === "vi" ? "Mới nhất trước" : "Newest First"}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => handleSortChange("oldest")}
             className={cn(filters.sort === "oldest" && "bg-accent")}
           >
             <SortAsc className="h-4 w-4 mr-2" />
-            Oldest First
+            {language === "vi" ? "Cũ nhất trước" : "Oldest First"}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => handleSortChange("sender")}
             className={cn(filters.sort === "sender" && "bg-accent")}
           >
             <span className="mr-2">👤</span>
-            By Sender
+            {language === "vi" ? "Theo người gửi" : "By Sender"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -97,7 +101,7 @@ export function EmailFilters({
           >
             <Filter className="h-4 w-4" />
             <span className={cn("hidden", !compact && "sm:inline")}>
-              Filter
+              {language === "vi" ? "Bộ lọc" : "Filter"}
             </span>
             {hasActiveFilters && (
               <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
@@ -105,19 +109,19 @@ export function EmailFilters({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+          <DropdownMenuLabel>{language === "vi" ? "Lọc theo" : "Filter by"}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
             checked={filters.unreadOnly}
             onCheckedChange={() => handleFilterToggle("unreadOnly")}
           >
-            Unread only
+            {language === "vi" ? "Chỉ thư chưa đọc" : "Unread only"}
           </DropdownMenuCheckboxItem>
           <DropdownMenuCheckboxItem
             checked={filters.hasAttachments}
             onCheckedChange={() => handleFilterToggle("hasAttachments")}
           >
-            Has attachments
+            {language === "vi" ? "Có tệp đính kèm" : "Has attachments"}
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -138,7 +142,7 @@ export function EmailFilters({
           }}
           className="text-xs"
         >
-          Clear
+          {language === "vi" ? "Xóa bộ lọc" : "Clear"}
         </Button>
       )}
     </div>

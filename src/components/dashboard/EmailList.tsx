@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import type { Email } from "@/types/email";
 import {
@@ -65,6 +66,7 @@ export function EmailList({
   onLoadMore,
   hideActionButtons = false,
 }: EmailListProps) {
+  const { t, language } = useLanguage();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [summaryEmailId, setSummaryEmailId] = useState<string | null>(null);
@@ -124,18 +126,19 @@ export function EmailList({
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const locale = language === "vi" ? "vi-VN" : "en-US";
 
     if (days === 0) {
-      return date.toLocaleTimeString("en-US", {
+      return date.toLocaleTimeString(locale, {
         hour: "numeric",
         minute: "2-digit",
       });
     } else if (days === 1) {
-      return "Yesterday";
+      return language === "vi" ? "Hôm qua" : "Yesterday";
     } else if (days < 7) {
-      return date.toLocaleDateString("en-US", { weekday: "short" });
+      return date.toLocaleDateString(locale, { weekday: "short" });
     } else {
-      return date.toLocaleDateString("en-US", {
+      return date.toLocaleDateString(locale, {
         month: "short",
         day: "numeric",
       });
@@ -145,31 +148,32 @@ export function EmailList({
   const formatSnoozeTime = (snoozedUntil: string) => {
     const date = new Date(snoozedUntil);
     const now = new Date();
+    const locale = language === "vi" ? "vi-VN" : "en-US";
 
-    const timeStr = date.toLocaleTimeString("en-US", {
+    const timeStr = date.toLocaleTimeString(locale, {
       hour: "numeric",
       minute: "2-digit",
     });
 
     if (date.toDateString() === now.toDateString()) {
-      return `Today, ${timeStr}`;
+      return language === "vi" ? `Hôm nay, ${timeStr}` : `Today, ${timeStr}`;
     }
 
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow, ${timeStr}`;
+      return language === "vi" ? `Ngày mai, ${timeStr}` : `Tomorrow, ${timeStr}`;
     }
 
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 7 && diffDays > 0) {
-      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+      const dayName = date.toLocaleDateString(locale, { weekday: "short" });
       return `${dayName}, ${timeStr}`;
     }
 
-    const dateStr = date.toLocaleDateString("en-US", {
+    const dateStr = date.toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
     });
@@ -185,7 +189,7 @@ export function EmailList({
             {!hideActionButtons && (
               <Button onClick={onCompose} size="sm" className="gap-1.5">
                 <Edit className="h-4 w-4" />
-                <span className="hidden xs:inline">Compose</span>
+                <span className="hidden xs:inline">{t("nav.compose")}</span>
               </Button>
             )}
             {!hideActionButtons && (
@@ -196,7 +200,7 @@ export function EmailList({
                 className="gap-1.5"
               >
                 <RefreshCw className="h-4 w-4" />
-                <span className="hidden xs:inline">Refresh</span>
+                <span className="hidden xs:inline">{t("common.refresh")}</span>
               </Button>
             )}
           </div>
@@ -204,7 +208,7 @@ export function EmailList({
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
-                {selectedIds.size} selected
+                {selectedIds.size} {language === "vi" ? "đã chọn" : "selected"}
               </span>
 
               {mailboxId === "TRASH" ? (
@@ -216,7 +220,9 @@ export function EmailList({
                     className="gap-1.5 text-red-600 hover:text-red-700"
                   >
                     <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden xs:inline">Delete Forever</span>
+                    <span className="hidden xs:inline">
+                      {language === "vi" ? "Xóa vĩnh viễn" : "Delete Forever"}
+                    </span>
                   </Button>
                   <Button
                     onClick={handleBulkMoveToInbox}
@@ -225,7 +231,9 @@ export function EmailList({
                     className="gap-1.5"
                   >
                     <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden xs:inline">Move to Inbox</span>
+                    <span className="hidden xs:inline">
+                      {language === "vi" ? "Chuyển vào Hộp thư" : "Move to Inbox"}
+                    </span>
                   </Button>
                 </>
               ) : (
@@ -236,7 +244,7 @@ export function EmailList({
                   className="gap-1.5"
                 >
                   <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Delete</span>
+                  <span className="hidden xs:inline">{t("common.delete")}</span>
                 </Button>
               )}
 
@@ -247,7 +255,9 @@ export function EmailList({
                 className="gap-1.5"
               >
                 <MailOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Toggle Read</span>
+                <span className="hidden sm:inline">
+                  {language === "vi" ? "Đổi trạng thái đọc" : "Toggle Read"}
+                </span>
               </Button>
             </div>
           )}
@@ -267,7 +277,7 @@ export function EmailList({
                 aria-label="Select all emails"
               />
               <span className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
-                {emails.length} {emails.length === 1 ? "email" : "emails"}
+                {emails.length} {language === "vi" ? "thư" : emails.length === 1 ? "email" : "emails"}
               </span>
             </div>
           )}
@@ -275,14 +285,18 @@ export function EmailList({
           {isLoading ? (
             <div className="p-8 text-center">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-blue-600" />
-              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Loading...</p>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                {language === "vi" ? "Đang tải..." : "Loading..."}
+              </p>
             </div>
           ) : null}
 
           {!isLoading && emails.length === 0 ? (
             <div className="p-4 sm:p-8 text-center text-zinc-500 dark:text-zinc-400">
               <Mail className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
-              <p className="text-xs sm:text-sm">No emails in this folder</p>
+              <p className="text-xs sm:text-sm">
+                {language === "vi" ? "Không có thư nào trong thư mục này" : "No emails in this folder"}
+              </p>
             </div>
           ) : null}
 
@@ -412,7 +426,7 @@ export function EmailList({
                               className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 border border-purple-200 dark:border-purple-800/60 rounded transition-colors"
                             >
                               <Sparkles className="h-3 w-3" />
-                              AI Summary
+                              {t("email.aiSummary")}
                             </button>
                           </div>
                         </>
@@ -428,7 +442,7 @@ export function EmailList({
               {isLoadingMore ? (
                 <div className="flex items-center justify-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent text-blue-600" />
-                  Loading more...
+                  {language === "vi" ? "Đang tải thêm..." : "Loading more..."}
                 </div>
               ) : (
                 <Button
@@ -437,7 +451,7 @@ export function EmailList({
                   size="sm"
                   className="w-full sm:w-auto min-w-[120px]"
                 >
-                  Load More
+                  {language === "vi" ? "Tải thêm" : "Load More"}
                 </Button>
               )}
             </div>
@@ -448,19 +462,22 @@ export function EmailList({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {language === "vi" ? "Xóa vĩnh viễn?" : "Delete Forever?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {selectedIds.size} email
-              {selectedIds.size > 1 ? "s" : ""}. This action cannot be undone.
+              {language === "vi"
+                ? `Hành động này sẽ xóa vĩnh viễn ${selectedIds.size} thư đã chọn. Thao tác này không thể hoàn tác.`
+                : `This will permanently delete ${selectedIds.size} email${selectedIds.size > 1 ? "s" : ""}. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmPermanentDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete Forever
+              {language === "vi" ? "Xóa vĩnh viễn" : "Delete Forever"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

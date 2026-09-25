@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { searchHistoryManager } from "@/utils/searchHistory";
 import type { Email } from "@/types/email";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface SearchBarProps {
   emails: Email[];
@@ -27,6 +28,7 @@ export function SearchBar({
   className,
   value,
 }: SearchBarProps) {
+  const { language } = useLanguage();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -240,8 +242,8 @@ export function SearchBar({
           type="text"
           placeholder={
             isSemantic
-              ? "Describe what to search (Semantic AI)..."
-              : "Search emails..."
+              ? (language === "vi" ? "Mô tả nội dung cần tìm (AI Ngữ nghĩa)..." : "Describe what to search (Semantic AI)...")
+              : (language === "vi" ? "Tìm kiếm email..." : "Search emails...")
           }
           value={query}
           onChange={handleInputChange}
@@ -270,7 +272,9 @@ export function SearchBar({
         size="sm"
         onClick={() => setIsSemantic(!isSemantic)}
         title={
-          isSemantic ? "Switch to Fuzzy Search" : "Switch to Semantic AI Search"
+          isSemantic
+            ? (language === "vi" ? "Chuyển sang Tìm kiếm" : "Switch to Fuzzy Search")
+            : (language === "vi" ? "Chuyển sang Tìm kiếm theo ngữ nghĩa" : "Switch to Semantic AI Search")
         }
         className={cn(
           "transition-colors gap-2 min-w-[120px]",
@@ -281,7 +285,7 @@ export function SearchBar({
           className={cn("h-4 w-4", isSemantic ? "text-white" : "text-zinc-500 dark:text-zinc-400")}
         />
         <span className={isSemantic ? "text-white" : "text-zinc-700 dark:text-zinc-300"}>
-          {isSemantic ? "Semantic AI" : "Fuzzy Search"}
+          {isSemantic ? (language === "vi" ? "AI Ngữ nghĩa" : "Semantic AI") : (language === "vi" ? "Tìm kiếm" : "Fuzzy Search")}
         </span>
       </Button>
 

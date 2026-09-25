@@ -22,8 +22,11 @@ import {
   MessageSquare,
   Clock,
   X,
+  Settings,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { SettingsModal } from "@/components/settings/SettingsModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -79,6 +82,8 @@ export function MailboxList({
 }: MailboxListProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t, language } = useLanguage();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [labelToDelete, setLabelToDelete] = useState<{
     id: string;
@@ -89,14 +94,38 @@ export function MailboxList({
   const mainMailboxes = mailboxes.filter((m) => m.isMain);
   const secondaryMailboxes = mailboxes.filter((m) => !m.isMain);
 
+  const getMailboxDisplayName = (mailbox: Mailbox) => {
+    const id = mailbox.id.toUpperCase();
+    const name = (mailbox.name || "").toUpperCase();
+    const type = (mailbox.type || "").toUpperCase();
+
+    if (id === "INBOX" || name === "INBOX") return t("nav.inbox");
+    if (id === "STARRED" || name === "STARRED") return t("nav.starred");
+    if (id === "SENT" || name === "SENT") return t("nav.sent");
+    if (id === "DRAFT" || id === "DRAFTS" || name === "DRAFT" || name === "DRAFTS") return t("nav.drafts");
+    if (id === "TRASH" || name === "TRASH") return t("nav.trash");
+    if (id === "SPAM" || name === "SPAM") return t("nav.spam");
+    if (id === "SNOOZED" || name === "SNOOZED" || type === "SNOOZED" || name.includes("SNOOZE")) return t("nav.snoozed");
+
+    // Gmail system category labels
+    if (id === "IMPORTANT" || name === "IMPORTANT") return language === "vi" ? "Quan trọng" : "Important";
+    if (id === "CATEGORY_FORUMS" || name === "FORUMS" || name === "CATEGORY_FORUMS") return language === "vi" ? "Diễn đàn" : "Forums";
+    if (id === "CATEGORY_UPDATES" || name === "UPDATES" || name === "CATEGORY_UPDATES") return language === "vi" ? "Cập nhật" : "Updates";
+    if (id === "CATEGORY_PERSONAL" || name === "PERSONAL" || name === "CATEGORY_PERSONAL") return language === "vi" ? "Cá nhân" : "Personal";
+    if (id === "CATEGORY_PROMOTIONS" || name === "PROMOTIONS" || name === "CATEGORY_PROMOTIONS") return language === "vi" ? "Quảng cáo" : "Promotions";
+    if (id === "CATEGORY_SOCIAL" || name === "SOCIAL" || name === "CATEGORY_SOCIAL") return language === "vi" ? "Mạng xã hội" : "Social";
+
+    return mailbox.name;
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success("Logged out successfully");
+      toast.success(language === "vi" ? "Đã đăng xuất" : "Logged out successfully");
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
-      toast.error("Logout failed");
+      toast.error(language === "vi" ? "Đăng xuất thất bại" : "Logout failed");
     }
   };
 
@@ -125,8 +154,8 @@ export function MailboxList({
 
   return (
     <div className="h-full flex flex-col bg-[#fafafa] dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800">
-      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-        <h2 className="font-semibold text-lg tracking-tight">Mailboxes</h2>
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
+        <h2 className="font-semibold text-lg tracking-tight">{t("nav.mailboxes")}</h2>
       </div>
       <nav className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
@@ -162,7 +191,7 @@ export function MailboxList({
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-4 w-4" />
-                      <span>{mailbox.name}</span>
+                      <span>{getMailboxDisplayName(mailbox)}</span>
                     </div>
                     {mailbox.unreadCount ? (
                       <Badge
@@ -195,7 +224,15 @@ export function MailboxList({
                       ) : (
                         <ChevronDown className="h-4 w-4" />
                       )}
-                      <span>{showMore ? "Show less" : "More"}</span>
+                      <span>
+                        {showMore
+                          ? language === "vi"
+                            ? "Thu gọn"
+                            : "Show less"
+                          : language === "vi"
+                          ? "Xem thêm"
+                          : "More"}
+                      </span>
                     </div>
                   </button>
                 </li>
@@ -225,7 +262,7 @@ export function MailboxList({
                           >
                             <div className="flex items-center gap-3">
                               <Icon className="h-4 w-4" />
-                              <span>{mailbox.name}</span>
+                              <span>{getMailboxDisplayName(mailbox)}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               {mailbox.unreadCount ? (
@@ -252,7 +289,7 @@ export function MailboxList({
                                 });
                               }}
                               className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-950/50 rounded"
-                              title="Delete label"
+                              title={language === "vi" ? "Xóa nhãn" : "Delete label"}
                             >
                               <X className="h-3 w-3 text-red-600 dark:text-red-400" />
                             </button>
@@ -300,14 +337,33 @@ export function MailboxList({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>{t("common.settings")}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{t("common.logout")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <ThemeToggle />
+
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-8 h-8 p-0 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-100 cursor-pointer"
+            title={t("common.settings")}
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+          <ThemeToggle />
+        </div>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
 
       {/* Delete Label Confirmation Dialog */}
       <AlertDialog
@@ -316,20 +372,21 @@ export function MailboxList({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Label</AlertDialogTitle>
+            <AlertDialogTitle>{language === "vi" ? "Xóa nhãn" : "Delete Label"}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the label "{labelToDelete?.name}"?
-              This will remove the label from all emails and cannot be undone.
+              {language === "vi"
+                ? `Bạn có chắc chắn muốn xóa nhãn "${labelToDelete?.name}"? Thao tác này sẽ gỡ nhãn khỏi toàn bộ email và không thể hoàn tác.`
+                : `Are you sure you want to delete the label "${labelToDelete?.name}"? This will remove the label from all emails and cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteLabel}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? (language === "vi" ? "Đang xóa..." : "Deleting...") : t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

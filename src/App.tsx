@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/dashboard/ProtectedRoute';
 import { InboxPage } from './pages/InboxPage';
@@ -14,7 +15,8 @@ function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -48,7 +50,8 @@ function App() {
           {/* Not Found Route */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-        </AuthProvider>
+          </AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </BrowserRouter>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ export function EmailSummaryModal({
   messageId,
   emailSubject,
 }: EmailSummaryModalProps) {
+  const { language } = useLanguage();
   const [summary, setSummary] = useState<EmailSummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +49,16 @@ export function EmailSummaryModal({
       setSummary(result);
     } catch (err) {
       console.error('Failed to fetch email summary:', err);
-      setError('Failed to generate summary. Please try again.');
-      toast.error('Failed to generate summary');
+      setError(
+        language === 'vi'
+          ? 'Không thể tạo tóm tắt. Vui lòng thử lại.'
+          : 'Failed to generate summary. Please try again.',
+      );
+      toast.error(
+        language === 'vi'
+          ? 'Không thể tạo tóm tắt'
+          : 'Failed to generate summary',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +70,7 @@ export function EmailSummaryModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-purple-600" />
-            AI Email Summary
+            {language === 'vi' ? 'Tóm tắt email bằng AI' : 'AI Email Summary'}
           </DialogTitle>
           {emailSubject && (
             <DialogDescription className="text-left">
@@ -74,7 +84,9 @@ export function EmailSummaryModal({
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-purple-600" />
               <p className="text-sm text-gray-500">
-                Generating AI summary...
+                {language === 'vi'
+                  ? 'Đang tạo tóm tắt AI...'
+                  : 'Generating AI summary...'}
               </p>
             </div>
           )}
@@ -88,7 +100,7 @@ export function EmailSummaryModal({
                 size="sm"
                 className="mt-3"
               >
-                Try Again
+                {language === 'vi' ? 'Thử lại' : 'Try Again'}
               </Button>
             </div>
           )}
@@ -99,7 +111,7 @@ export function EmailSummaryModal({
               {summary.oneLineSubject && (
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-purple-900 mb-2">
-                    📌 Quick Summary
+                    {language === 'vi' ? '📌 Tóm tắt nhanh' : '📌 Quick Summary'}
                   </h3>
                   <p className="text-purple-800 font-medium">
                     {summary.oneLineSubject}
@@ -111,7 +123,7 @@ export function EmailSummaryModal({
               {summary.bullets && summary.bullets.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
-                    🔑 Key Points
+                    {language === 'vi' ? '🔑 Điểm chính' : '🔑 Key Points'}
                   </h3>
                   <ul className="space-y-2">
                     {summary.bullets.map((bullet, index) => (
@@ -133,7 +145,7 @@ export function EmailSummaryModal({
               {summary.summary && (
                 <div>
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
-                    📄 Full Summary
+                    {language === 'vi' ? '📄 Tóm tắt chi tiết' : '📄 Full Summary'}
                   </h3>
                   <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
                     <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
@@ -147,17 +159,26 @@ export function EmailSummaryModal({
               <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-2 text-xs text-zinc-500 dark:text-zinc-400">
                 {summary.from && (
                   <div>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">From:</span> {summary.from}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                      {language === 'vi' ? 'Người gửi:' : 'From:'}
+                    </span>{' '}
+                    {summary.from}
                   </div>
                 )}
                 {summary.to && (
                   <div>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">To:</span> {summary.to}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                      {language === 'vi' ? 'Người nhận:' : 'To:'}
+                    </span>{' '}
+                    {summary.to}
                   </div>
                 )}
                 {summary.date && (
                   <div>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">Date:</span> {summary.date}
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                      {language === 'vi' ? 'Ngày:' : 'Date:'}
+                    </span>{' '}
+                    {summary.date}
                   </div>
                 )}
               </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Email } from "@/types/email";
 import { KanbanCard } from "./KanbanCard";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ export function KanbanColumn({
   onFiltersChange,
   onFilterClear,
 }: KanbanColumnProps) {
+  const { language } = useLanguage();
   const [isDragOver, setIsDragOver] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(column.name);
@@ -62,6 +64,25 @@ export function KanbanColumn({
   useEffect(() => {
     setRenameValue(column.name);
   }, [column.name]);
+
+  const getColumnDisplayName = (name: string, id: string) => {
+    if (language !== "vi") return name;
+    const upperName = (name || "").toUpperCase();
+    const upperId = (id || "").toUpperCase();
+    if (upperName === "INBOX" || upperId === "INBOX") return "Hộp thư đến";
+    if (upperName === "SNOOZED" || upperId === "SNOOZED") return "Đã tạm ẩn";
+    if (upperName === "SENT" || upperId === "SENT") return "Đã gửi";
+    if (upperName === "DRAFT" || upperName === "DRAFTS" || upperId === "DRAFT" || upperId === "DRAFTS") return "Thư nháp";
+    if (upperName === "STARRED" || upperId === "STARRED") return "Có gắn dấu sao";
+    if (upperName === "TRASH" || upperId === "TRASH") return "Thùng rác";
+    if (upperName === "SPAM" || upperId === "SPAM") return "Thư rác";
+    if (upperName === "IMPORTANT") return "Quan trọng";
+    if (upperName === "PROMOTIONS") return "Quảng cáo";
+    if (upperName === "SOCIAL") return "Mạng xã hội";
+    if (upperName === "UPDATES") return "Nội dung cập nhật";
+    if (upperName === "FORUMS") return "Diễn đàn";
+    return name;
+  };
 
   const handleRenameSubmit = async () => {
     if (!onRename || !renameValue.trim() || renameValue === column.name) {
@@ -73,7 +94,7 @@ export function KanbanColumn({
       await onRename(column.id, renameValue.trim());
       setIsRenaming(false);
     } catch (error) {
-      toast.error("Failed to rename column");
+      toast.error(language === "vi" ? "Đổi tên cột thất bại" : "Failed to rename column");
       console.error("Error renaming column:", error);
     }
   };
@@ -104,7 +125,9 @@ export function KanbanColumn({
 
   // Get the icon component dynamically
   const IconComponent = (LucideIcons as any)[column.icon] || LucideIcons.Mail;
-  const isSnoozed = column.name === "SNOOZED";
+  const isSnoozed =
+    column.name.toUpperCase() === "SNOOZED" ||
+    column.id.toUpperCase() === "SNOOZED";
   const canRename = onRename && !isSnoozed && canRemove;
 
   return (
@@ -154,9 +177,15 @@ export function KanbanColumn({
                 setIsRenaming(true);
               }
             }}
-            title={canRename ? "Double click or click to rename" : column.name}
+            title={
+              canRename
+                ? language === "vi"
+                  ? "Nhấp để đổi tên"
+                  : "Double click or click to rename"
+                : getColumnDisplayName(column.name, column.id)
+            }
           >
-            {column.name}
+            {getColumnDisplayName(column.name, column.id)}
           </h3>
         )}
 
@@ -183,7 +212,7 @@ export function KanbanColumn({
             size="sm"
             className="h-7 w-7 p-0 ml-1 hover:bg-destructive/10 hover:text-destructive rounded-full"
             onClick={() => onRemove(column.id)}
-            title="Remove column"
+            title={language === "vi" ? "Xóa cột" : "Remove column"}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -223,7 +252,7 @@ export function KanbanColumn({
             </div>
           ) : emails.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-              No emails
+              {language === "vi" ? "Không có thư" : "No emails"}
             </div>
           ) : (
             <>
@@ -247,7 +276,13 @@ export function KanbanColumn({
                   onClick={onLoadMore}
                   disabled={isLoading}
                 >
-                  {isLoading ? "Loading..." : "Load More"}
+                  {isLoading
+                    ? language === "vi"
+                      ? "Đang tải..."
+                      : "Loading..."
+                    : language === "vi"
+                    ? "Tải thêm"
+                    : "Load More"}
                 </Button>
               )}
             </>

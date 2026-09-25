@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Email, Mailbox } from "@/types/email";
 import { KanbanColumn } from "./KanbanColumn";
 import { SnoozeModal } from "./SnoozeModal";
@@ -135,6 +136,7 @@ export function KanbanBoard({
   refreshTrigger,
   onLabelRename,
 }: KanbanBoardProps) {
+  const { t, language } = useLanguage();
   const [draggedEmailId, setDraggedEmailId] = useState<string | null>(null);
   const [draggedSourceColumn, setDraggedSourceColumn] = useState<string | null>(
     null,
@@ -1000,19 +1002,22 @@ export function KanbanBoard({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Column</AlertDialogTitle>
+            <AlertDialogTitle>
+              {language === "vi" ? "Xóa cột" : "Remove Column"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove the column "{columnToDelete?.name}
-              " from the board?
+              {language === "vi"
+                ? `Bạn có chắc chắn muốn xóa cột "${columnToDelete?.name}" khỏi bảng?`
+                : `Are you sure you want to remove the column "${columnToDelete?.name}" from the board?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveColumn}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
             >
-              Remove
+              {language === "vi" ? "Xóa" : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
