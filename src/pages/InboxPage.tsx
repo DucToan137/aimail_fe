@@ -1728,7 +1728,7 @@ export function InboxPage() {
             </Button>
             {/* User Menu - Mobile */}
             {/* Theme Toggle Button */}
-            <ThemeToggle variant="dropdown" />
+            <ThemeToggle />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1804,7 +1804,7 @@ export function InboxPage() {
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Column 1: Mailboxes (Desktop only, hidden in Kanban mode) */}
         {viewMode !== "kanban" && (
-          <div className="hidden lg:block w-64">
+          <div className="hidden lg:block w-64 shrink-0">
             <MailboxList
               mailboxes={mailboxes}
               selectedMailboxId={selectedMailboxId}
@@ -1993,16 +1993,7 @@ export function InboxPage() {
                   {t("nav.listView")}
                 </Button>
                 <div className="h-4 w-[1px] bg-border mx-1" />
-                <ThemeToggle variant="dropdown" />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="h-8 w-8 p-0 cursor-pointer"
-                  title={t("common.settings")}
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
+                <ThemeToggle />
               </div>
             </div>
             {/* Kanban Board */}
@@ -2128,6 +2119,8 @@ export function InboxPage() {
                     <LayoutGrid className="h-4 w-4" />
                     {t("nav.kanban")}
                   </Button>
+                  <div className="h-4 w-[1px] bg-border mx-1" />
+                  <ThemeToggle />
                 </div>
               </div>
 

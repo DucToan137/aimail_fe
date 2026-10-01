@@ -24,7 +24,6 @@ import {
   X,
   Settings,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Badge } from "@/components/ui/badge";
@@ -305,22 +304,24 @@ export function MailboxList({
       </nav>
 
       {/* User Profile Section */}
-      <div className="p-3 border-t bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
+      <div className="p-3 border-t bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex-1 justify-start h-auto p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/80"
+              className="w-full justify-start h-auto p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg min-w-0"
             >
               <div className="flex items-center gap-3 w-full min-w-0">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="text-xs font-semibold">
                     {user ? getUserInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 text-left overflow-hidden">
-                  <p className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100">{user?.name}</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium truncate text-zinc-900 dark:text-zinc-100 leading-tight">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate leading-tight">
                     {user?.email}
                   </p>
                 </div>
@@ -347,19 +348,6 @@ export function MailboxList({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsSettingsOpen(true)}
-            className="w-8 h-8 p-0 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-100 cursor-pointer"
-            title={t("common.settings")}
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-          <ThemeToggle />
-        </div>
       </div>
 
       {/* Settings Modal */}

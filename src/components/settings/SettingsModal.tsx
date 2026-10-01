@@ -11,7 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { 
   Sun, 
   Moon, 
-  Laptop, 
   Languages, 
   Palette, 
   User, 
@@ -43,12 +42,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
     toast.success(newLang === 'vi' ? 'Đã đổi ngôn ngữ sang Tiếng Việt' : 'Switched language to English');
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = (newTheme: 'light' | 'dark') => {
     setTheme(newTheme);
     toast.success(
       language === 'vi' 
-        ? `Đã chuyển giao diện sang ${newTheme === 'light' ? 'Sáng' : newTheme === 'dark' ? 'Tối' : 'Hệ thống'}`
-        : `Switched theme to ${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)}`
+        ? `Đã chuyển giao diện sang ${newTheme === 'light' ? 'Sáng' : 'Tối'}`
+        : `Switched theme to ${newTheme === 'light' ? 'Light' : 'Dark'}`
     );
   };
 
@@ -157,7 +156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Light Mode */}
                   <button
                     type="button"
@@ -210,35 +209,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                       </p>
                     </div>
                     {theme === 'dark' && (
-                      <div className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                        <Check className="w-3 h-3" />
-                      </div>
-                    )}
-                  </button>
-
-                  {/* System Mode */}
-                  <button
-                    type="button"
-                    onClick={() => handleThemeChange('system')}
-                    className={cn(
-                      'relative flex flex-col items-center justify-between p-4 rounded-xl border text-center transition-all cursor-pointer group',
-                      theme === 'system'
-                        ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/20 ring-2 ring-blue-600/30 shadow-xs'
-                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                    )}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center mb-3 text-zinc-600 dark:text-zinc-300">
-                      <Laptop className="w-5 h-5 transition-transform group-hover:scale-110 duration-200" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                        {t('settings.system')}
-                      </h4>
-                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
-                        {language === 'vi' ? 'Theo hệ điều hành' : 'Sync with OS'}
-                      </p>
-                    </div>
-                    {theme === 'system' && (
                       <div className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center">
                         <Check className="w-3 h-3" />
                       </div>

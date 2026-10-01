@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeContextType {
@@ -18,42 +18,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
       const stored = localStorage.getItem(THEME_STORAGE_KEY);
-      if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      if (stored === 'light' || stored === 'dark') {
         return stored;
       }
     } catch {
       // Ignore localStorage errors (e.g. in private browsing)
     }
-    return 'system';
-  });
-
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
     return 'light';
   });
 
-  // Listen for OS system theme changes
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemTheme(e.matches ? 'dark' : 'light');
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  // Compute the effectively resolved theme (either 'light' or 'dark')
-  const resolvedTheme: ResolvedTheme = useMemo(() => {
-    if (theme === 'system') {
-      return systemTheme;
-    }
-    return theme;
-  }, [theme, systemTheme]);
+  const resolvedTheme: ResolvedTheme = theme;
 
   // Synchronize the 'dark' CSS class on document.documentElement
   useEffect(() => {
@@ -75,7 +49,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleTheme = () => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const contextValue = useMemo(() => ({
