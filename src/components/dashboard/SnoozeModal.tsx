@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -32,9 +33,27 @@ export function SnoozeModal({
   onSnooze,
   emailSubject,
 }: SnoozeModalProps) {
+  const { t, language } = useLanguage();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [customDateTime, setCustomDateTime] = useState("");
   const [error, setError] = useState<string>("");
+
+  const getOptionLabel = (option: (typeof SNOOZE_OPTIONS)[number]) => {
+    if (language !== "vi") return option.label;
+    if ("hours" in option) {
+      return `Sau ${option.hours} giờ`;
+    }
+    switch (option.type) {
+      case "tomorrow":
+        return "Ngày mai 8:00";
+      case "next-week":
+        return "Tuần tới";
+      case "next-month":
+        return "Tháng tới";
+      default:
+        return (option as any).label;
+    }
+  };
 
   const calculateSnoozeDate = (
     option: (typeof SNOOZE_OPTIONS)[number],
@@ -83,7 +102,11 @@ export function SnoozeModal({
       setSelectedDate(date);
 
       if (date < new Date()) {
-        setError("Cannot snooze to a past time");
+        setError(
+          language === "vi"
+            ? "Không thể tạm ẩn vào thời gian trong quá khứ"
+            : "Cannot snooze to a past time",
+        );
       } else {
         setError("");
       }
@@ -96,7 +119,11 @@ export function SnoozeModal({
   const handleConfirm = () => {
     if (selectedDate) {
       if (selectedDate < new Date()) {
-        setError("Cannot snooze to a past time");
+        setError(
+          language === "vi"
+            ? "Không thể tạm ẩn vào thời gian trong quá khứ"
+            : "Cannot snooze to a past time",
+        );
         return;
       }
       onSnooze(selectedDate);
@@ -116,7 +143,7 @@ export function SnoozeModal({
   };
 
   const formatDate = (date: Date): string => {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-US", {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(date);
@@ -128,14 +155,16 @@ export function SnoozeModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Snooze Email
+            {language === "vi" ? "Tạm ẩn thư" : "Snooze Email"}
           </DialogTitle>
           <DialogDescription>
             {emailSubject ? (
               <>
-                Snooze email:{" "}
+                {language === "vi" ? "Tạm ẩn thư: " : "Snooze email: "}
                 <span className="font-medium">{emailSubject}</span>
               </>
+            ) : language === "vi" ? (
+              "Chọn thời gian để tạm ẩn thư này"
             ) : (
               "Choose a time to snooze this email"
             )}
@@ -146,7 +175,7 @@ export function SnoozeModal({
           {/* Quick Options */}
           <div>
             <Label className="text-sm font-medium mb-2 block">
-              Quick options
+              {language === "vi" ? "Tùy chọn nhanh" : "Quick options"}
             </Label>
             <div className="grid grid-cols-2 gap-2">
               {SNOOZE_OPTIONS.map((option, idx) => (
@@ -166,7 +195,7 @@ export function SnoozeModal({
                   onClick={() => handleQuickSnooze(option)}
                 >
                   <Clock className="mr-2 h-4 w-4" />
-                  {option.label}
+                  {getOptionLabel(option)}
                 </Button>
               ))}
             </div>
@@ -178,7 +207,9 @@ export function SnoozeModal({
               htmlFor="custom-datetime"
               className="text-sm font-medium mb-2 block"
             >
-              Or choose a custom time
+              {language === "vi"
+                ? "Hoặc chọn thời gian tùy chỉnh"
+                : "Or choose a custom time"}
             </Label>
             <input
               id="custom-datetime"
@@ -193,7 +224,11 @@ export function SnoozeModal({
           {/* Selected Time Preview */}
           {selectedDate && !error && (
             <div className="rounded-md bg-muted p-3 text-sm">
-              <strong>Will be snoozed until:</strong>{" "}
+              <strong>
+                {language === "vi"
+                  ? "Sẽ tạm ẩn đến:"
+                  : "Will be snoozed until:"}
+              </strong>{" "}
               <span className="text-primary font-medium">
                 {formatDate(selectedDate)}
               </span>
@@ -203,14 +238,14 @@ export function SnoozeModal({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleCancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             type="button"
             onClick={handleConfirm}
             disabled={!selectedDate || !!error}
           >
-            Confirm
+            {language === "vi" ? "Xác nhận" : "Confirm"}
           </Button>
         </DialogFooter>
       </DialogContent>

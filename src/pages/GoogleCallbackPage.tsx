@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
-import { Card } from "../components/ui/card";
 import { Loader2, Mail } from "lucide-react";
 import { getErrorMessage } from "../utils/errorHandler";
 import { emailService } from "../services/emailService";
@@ -64,23 +63,21 @@ export const GoogleCallbackPage: React.FC = () => {
   }, [searchParams, handleGoogleCallback, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md p-8">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-            <Mail className="w-8 h-8 text-blue-600" />
-          </div>
-          <div className="flex items-center justify-center mb-4">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">
-            Completing Google Sign-in...
-          </h1>
-          <p className="text-gray-600">
-            Please wait while we complete your authentication with Google.
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-zinc-950 px-4 transition-colors">
+      <div className="w-full max-w-sm sm:max-w-md p-8 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xs text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 shadow-xs mb-5">
+          <Mail className="w-6 h-6" />
         </div>
-      </Card>
+        <div className="flex items-center justify-center mb-4">
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-700 dark:text-zinc-300" />
+        </div>
+        <h1 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50 mb-1.5">
+          Đang hoàn tất đăng nhập Google...
+        </h1>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Vui lòng đợi trong giây lát trong khi chúng tôi kết nối hòm thư của bạn.
+        </p>
+      </div>
     </div>
   );
 };

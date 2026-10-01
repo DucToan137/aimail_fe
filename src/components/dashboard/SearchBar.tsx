@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { searchHistoryManager } from "@/utils/searchHistory";
 import type { Email } from "@/types/email";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface SearchBarProps {
   emails: Email[];
@@ -27,6 +28,7 @@ export function SearchBar({
   className,
   value,
 }: SearchBarProps) {
+  const { language } = useLanguage();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -240,8 +242,8 @@ export function SearchBar({
           type="text"
           placeholder={
             isSemantic
-              ? "Describe what to search (Semantic AI)..."
-              : "Search emails..."
+              ? (language === "vi" ? "Mô tả nội dung cần tìm (AI Ngữ nghĩa)..." : "Describe what to search (Semantic AI)...")
+              : (language === "vi" ? "Tìm kiếm email..." : "Search emails...")
           }
           value={query}
           onChange={handleInputChange}
@@ -270,7 +272,9 @@ export function SearchBar({
         size="sm"
         onClick={() => setIsSemantic(!isSemantic)}
         title={
-          isSemantic ? "Switch to Fuzzy Search" : "Switch to Semantic AI Search"
+          isSemantic
+            ? (language === "vi" ? "Chuyển sang Tìm kiếm" : "Switch to Fuzzy Search")
+            : (language === "vi" ? "Chuyển sang Tìm kiếm theo ngữ nghĩa" : "Switch to Semantic AI Search")
         }
         className={cn(
           "transition-colors gap-2 min-w-[120px]",
@@ -278,10 +282,10 @@ export function SearchBar({
         )}
       >
         <Sparkles
-          className={cn("h-4 w-4", isSemantic ? "text-white" : "text-gray-500")}
+          className={cn("h-4 w-4", isSemantic ? "text-white" : "text-zinc-500 dark:text-zinc-400")}
         />
-        <span className={isSemantic ? "text-white" : "text-gray-700"}>
-          {isSemantic ? "Semantic AI" : "Fuzzy Search"}
+        <span className={isSemantic ? "text-white" : "text-zinc-700 dark:text-zinc-300"}>
+          {isSemantic ? (language === "vi" ? "AI Ngữ nghĩa" : "Semantic AI") : (language === "vi" ? "Tìm kiếm" : "Fuzzy Search")}
         </span>
       </Button>
 
@@ -289,23 +293,23 @@ export function SearchBar({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 top-full left-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 top-full left-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg max-h-64 overflow-y-auto"
         >
           {suggestions.map((suggestion, index) => (
             <button
               key={`${suggestion.type}-${suggestion.value}-${index}`}
               onClick={() => handleSuggestionClick(suggestion)}
               className={cn(
-                "w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left",
-                selectedIndex === index && "bg-gray-100",
+                "w-full px-4 py-2.5 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors text-left",
+                selectedIndex === index && "bg-zinc-100 dark:bg-zinc-800",
               )}
             >
               {getSuggestionIcon(suggestion.type)}
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">
+                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                   {suggestion.label}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">
                   {getSuggestionLabel(suggestion)}
                 </div>
               </div>

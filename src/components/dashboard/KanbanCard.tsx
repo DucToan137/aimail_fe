@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Email } from "@/types/email";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -28,6 +29,7 @@ export function KanbanCard({
   onDragEnd,
   isLoading,
 }: KanbanCardProps) {
+  const { t, language } = useLanguage();
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -35,19 +37,20 @@ export function KanbanCard({
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const locale = language === "vi" ? "vi-VN" : "en-US";
 
     if (days === 0) {
-      return date.toLocaleTimeString("en-US", {
+      return date.toLocaleTimeString(locale, {
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
       });
     } else if (days === 1) {
-      return "Yesterday";
+      return language === "vi" ? "Hôm qua" : "Yesterday";
     } else if (days < 7) {
-      return `${days} days ago`;
+      return language === "vi" ? `${days} ngày trước` : `${days} days ago`;
     } else {
-      return date.toLocaleDateString("en-US", {
+      return date.toLocaleDateString(locale, {
         month: "short",
         day: "numeric",
       });
@@ -76,7 +79,7 @@ export function KanbanCard({
 
   if (isLoading) {
     return (
-      <div className="p-3 bg-white rounded-lg shadow-sm border border-gray-200 space-y-3 mb-2">
+      <div className="p-3 bg-card rounded-lg shadow-sm border border-border space-y-3 mb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-6 w-6 rounded-full" />
@@ -154,7 +157,7 @@ export function KanbanCard({
               : "text-muted-foreground font-normal",
           )}
         >
-          {email.subject || "(No Subject)"}
+          {email.subject || (language === "vi" ? "(Không có chủ đề)" : "(No Subject)")}
         </h4>
 
         {/* Preview */}
@@ -181,10 +184,10 @@ export function KanbanCard({
             variant="ghost"
             size="sm"
             className="h-6 px-2 py-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-full flex items-center gap-1.5 cursor-pointer"
-            title="AI Summary"
+            title={t("email.aiSummary")}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-medium">AI Summary</span>
+            <span className="text-[10px] font-medium">{t("email.aiSummary")}</span>
           </Button>
         </div>
       </CardContent>

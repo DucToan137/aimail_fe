@@ -11,6 +11,7 @@ import { EmailDetail } from "@/components/dashboard/EmailDetail";
 import { ComposeEmailModal } from "@/components/dashboard/ComposeEmailModal";
 import { KanbanBoard } from "@/components/dashboard/KanbanBoard";
 import { SearchBar } from "@/components/dashboard/SearchBar";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   EmailFilters,
   type EmailFilterOptions,
@@ -40,7 +41,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, ArrowLeft, LogOut, LayoutGrid, List, Plus } from "lucide-react";
+import { Menu, ArrowLeft, LogOut, LayoutGrid, List, Plus, Settings } from "lucide-react";
+import { SettingsModal } from "@/components/settings/SettingsModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Helper function to apply filters and sorting to emails
 function applyFiltersAndSort(
@@ -115,6 +118,8 @@ export function InboxPage() {
     emailId?: string;
   }>();
   const { user, logout } = useAuth();
+  const { t, language } = useLanguage();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
   // Store raw emails without filter/sort applied
   const [rawEmails, setRawEmails] = useState<Email[]>([]);
@@ -123,6 +128,76 @@ export function InboxPage() {
   const [selectedMailboxId, setSelectedMailboxId] = useState<string>(
     urlMailboxId || "INBOX",
   );
+
+  const getMailboxDisplayName = (mailboxId: string) => {
+    const m = mailboxes.find((item) => item.id === mailboxId);
+    const id = mailboxId.toUpperCase();
+    const name = (m?.name || "").toUpperCase();
+    const type = (m?.type || "").toUpperCase();
+
+    if (id === "INBOX" || name === "INBOX") return t("nav.inbox");
+    if (id === "STARRED" || name === "STARRED") return t("nav.starred");
+    if (id === "SENT" || name === "SENT") return t("nav.sent");
+    if (id === "DRAFT" || id === "DRAFTS" || name === "DRAFT" || name === "DRAFTS") return t("nav.drafts");
+    if (id === "TRASH" || name === "TRASH") return t("nav.trash");
+    if (id === "SPAM" || name === "SPAM") return t("nav.spam");
+    if (id === "SNOOZED" || name === "SNOOZED" || type === "SNOOZED" || name.includes("SNOOZE")) return t("nav.snoozed");
+
+    if (id === "IMPORTANT" || name === "IMPORTANT") return language === "vi" ? "Quan trọng" : "Important";
+    if (id === "CATEGORY_FORUMS" || name === "FORUMS" || name === "CATEGORY_FORUMS") return language === "vi" ? "Diễn đàn" : "Forums";
+    if (id === "CATEGORY_UPDATES" || name === "UPDATES" || name === "CATEGORY_UPDATES") return language === "vi" ? "Cập nhật" : "Updates";
+    if (id === "CATEGORY_PERSONAL" || name === "PERSONAL" || name === "CATEGORY_PERSONAL") return language === "vi" ? "Cá nhân" : "Personal";
+    if (id === "CATEGORY_PROMOTIONS" || name === "PROMOTIONS" || name === "CATEGORY_PROMOTIONS") return language === "vi" ? "Quảng cáo" : "Promotions";
+    if (id === "CATEGORY_SOCIAL" || name === "SOCIAL" || name === "CATEGORY_SOCIAL") return language === "vi" ? "Mạng xã hội" : "Social";
+
+    return m?.name || t("nav.inbox");
+  };
+
+  const showShortcutsToast = () => {
+    toast.info(t("shortcuts.title"), {
+      description: (
+        <div className="text-xs space-y-1 mt-2">
+          <div>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">j/k</kbd>{" "}
+            {language === "vi" ? "hoặc" : "or"}{" "}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">↑/↓</kbd>{" "}
+            {t("shortcuts.navigate")}
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">Esc</kbd>{" "}
+            {t("shortcuts.close")}
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">c</kbd>{" "}
+            {t("shortcuts.compose")}
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">r</kbd>{" "}
+            {t("shortcuts.reply")} |{" "}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">a</kbd>{" "}
+            {t("shortcuts.replyAll")} |{" "}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">f</kbd>{" "}
+            {t("shortcuts.forward")}
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">#</kbd>{" "}
+            {t("shortcuts.delete")} |{" "}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">s</kbd>{" "}
+            {t("shortcuts.star")} |{" "}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">u</kbd>{" "}
+            {t("shortcuts.markUnread")}
+          </div>
+          <div>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">v</kbd>{" "}
+            {t("shortcuts.toggleView")} |{" "}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded">/</kbd>{" "}
+            {t("shortcuts.search")}
+          </div>
+        </div>
+      ),
+      duration: 8000,
+    });
+  };
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(
     urlEmailId || null,
   );
@@ -1566,7 +1641,7 @@ export function InboxPage() {
     try {
       await logout();
       toast.success("Logged out successfully");
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
       toast.error("Logout failed");
@@ -1585,9 +1660,9 @@ export function InboxPage() {
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-background text-foreground">
       {/* Mobile Header */}
-      <div className="lg:hidden border-b bg-white p-4 flex items-center gap-3">
+      <div className="lg:hidden border-b border-border bg-background p-4 flex items-center gap-3">
         {showEmailDetail ? (
           <>
             <Button
@@ -1652,6 +1727,9 @@ export function InboxPage() {
               )}
             </Button>
             {/* User Menu - Mobile */}
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1685,13 +1763,18 @@ export function InboxPage() {
                     setShowEmailDetail(false);
                     navigate(`/mailbox/${selectedMailboxId}`);
                   }}
+                  className="cursor-pointer"
                 >
                   <LayoutGrid className="mr-2 h-4 w-4" />
-                  Kanban View
+                  {t("nav.kanban")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>{t("common.settings")}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>{t("common.logout")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1721,7 +1804,7 @@ export function InboxPage() {
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Column 1: Mailboxes (Desktop only, hidden in Kanban mode) */}
         {viewMode !== "kanban" && (
-          <div className="hidden lg:block w-64">
+          <div className="hidden lg:block w-64 shrink-0">
             <MailboxList
               mailboxes={mailboxes}
               selectedMailboxId={selectedMailboxId}
@@ -1746,11 +1829,11 @@ export function InboxPage() {
                     className="gap-2 rounded-md border-primary/10 text-primary hover:bg-primary/10  transition-all duration-300"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back
+                    {t("common.back")}
                   </Button>
                 )}
                 <h2 className="text-lg font-semibold">
-                  {isSearchMode ? "Search Results" : "Kanban Board"}
+                  {isSearchMode ? t("kanban.searchResults") : t("kanban.title")}
                 </h2>
               </div>
               <div className="flex-1 max-w-xl mx-4">
@@ -1769,12 +1852,12 @@ export function InboxPage() {
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Column
+                      {t("kanban.addColumn")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Column to Kanban Board</DialogTitle>
+                      <DialogTitle>{t("kanban.addColumnTitle")}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 pt-4">
                       <div className="flex gap-2">
@@ -1788,7 +1871,7 @@ export function InboxPage() {
                           }}
                           className="flex-1"
                         >
-                          Existing Label
+                          {t("kanban.existingLabel")}
                         </Button>
                         <Button
                           type="button"
@@ -1800,7 +1883,7 @@ export function InboxPage() {
                           }}
                           className="flex-1"
                         >
-                          Create New
+                          {t("common.create")}
                         </Button>
                       </div>
 
@@ -1810,7 +1893,7 @@ export function InboxPage() {
                             htmlFor="label-select"
                             className="text-sm font-medium"
                           >
-                            Select a label to add as column
+                            {t("kanban.selectLabel")}
                           </Label>
                           <select
                             id="label-select"
@@ -1820,7 +1903,7 @@ export function InboxPage() {
                               setSelectedLabelForColumn(e.target.value)
                             }
                           >
-                            <option value="">Choose a label...</option>
+                            <option value="">{t("kanban.chooseLabel")}</option>
                             {mailboxes
                               .filter((m) => !["INBOX"].includes(m.id))
                               .map((mailbox) => (
@@ -1830,7 +1913,7 @@ export function InboxPage() {
                               ))}
                           </select>
                           <p className="text-xs text-muted-foreground">
-                            Select an existing label to add as a column
+                            {t("kanban.selectLabel")}
                           </p>
                         </div>
                       ) : (
@@ -1839,13 +1922,13 @@ export function InboxPage() {
                             htmlFor="new-label-name"
                             className="text-sm font-medium"
                           >
-                            New label name
+                            {t("kanban.newLabelName")}
                           </Label>
                           <input
                             id="new-label-name"
                             type="text"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            placeholder="Enter label name..."
+                            placeholder={t("kanban.enterLabelName")}
                             value={newLabelName}
                             onChange={(e) => setNewLabelName(e.target.value)}
                             onKeyDown={(e) => {
@@ -1855,7 +1938,7 @@ export function InboxPage() {
                             }}
                           />
                           <p className="text-xs text-muted-foreground">
-                            Create a new label and add it as a column
+                            {t("kanban.createLabelDesc")}
                           </p>
                         </div>
                       )}
@@ -1870,7 +1953,7 @@ export function InboxPage() {
                             setIsCreatingNewLabel(false);
                           }}
                         >
-                          Cancel
+                          {t("common.cancel")}
                         </Button>
                         <Button
                           onClick={handleAddColumn}
@@ -1880,7 +1963,7 @@ export function InboxPage() {
                               : !newLabelName.trim()
                           }
                         >
-                          {isCreatingNewLabel ? "Create & Add" : "Add Column"}
+                          {isCreatingNewLabel ? t("kanban.createAndAdd") : t("kanban.addColumn")}
                         </Button>
                       </div>
                     </div>
@@ -1889,97 +1972,9 @@ export function InboxPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    toast.info("Keyboard Shortcuts", {
-                      description: (
-                        <div className="text-xs space-y-1 mt-2">
-                          <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              j/k
-                            </kbd>{" "}
-                            or{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              ↑/↓
-                            </kbd>{" "}
-                            Navigate
-                          </div>
-                          {/* <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              Enter
-                            </kbd>{" "}
-                            or{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              o
-                            </kbd>{" "}
-                            Open
-                          </div> */}
-                          <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              Esc
-                            </kbd>{" "}
-                            Close
-                          </div>
-                          <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              c
-                            </kbd>{" "}
-                            Compose
-                          </div>
-                          <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              r
-                            </kbd>{" "}
-                            Reply |{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              a
-                            </kbd>{" "}
-                            Reply All |{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              f
-                            </kbd>{" "}
-                            Forward
-                          </div>
-                          <div>
-                            {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              e
-                            </kbd>{" "}
-                            Archive |{" "} */}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              #
-                            </kbd>{" "}
-                            Delete |{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              s
-                            </kbd>{" "}
-                            Star |
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              u
-                            </kbd>{" "}
-                            Mark Unread{" "}
-                          </div>
-                          <div>
-                            {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              x
-                            </kbd>{" "}
-                            Select */}
-                          </div>
-                          <div>
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              v
-                            </kbd>{" "}
-                            Toggle View |{" "}
-                            <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                              /
-                            </kbd>{" "}
-                            Search
-                          </div>
-                        </div>
-                      ),
-                      duration: 8000,
-                    });
-                  }}
+                  onClick={showShortcutsToast}
                   className="gap-2"
-                  title="Keyboard shortcuts (Press ? for help)"
+                  title={language === "vi" ? "Phím tắt (Bấm ? để xem trợ giúp)" : "Keyboard shortcuts (Press ? for help)"}
                 >
                   <span className="text-lg font-semibold">?</span>
                 </Button>
@@ -1995,14 +1990,16 @@ export function InboxPage() {
                   className="gap-2"
                 >
                   <List className="h-4 w-4" />
-                  List View
+                  {t("nav.listView")}
                 </Button>
+                <div className="h-4 w-[1px] bg-border mx-1" />
+                <ThemeToggle />
               </div>
             </div>
             {/* Kanban Board */}
             <div className="flex-1 min-h-0">
               {isSearchMode ? (
-                <div className="flex-1 min-h-0 bg-white">
+                <div className="flex-1 min-h-0 bg-background">
                   <EmailList
                     emails={emails}
                     selectedEmailId={selectedEmailId}
@@ -2090,9 +2087,8 @@ export function InboxPage() {
               <div className="hidden lg:flex items-center justify-between p-4 border-b bg-background">
                 <h2 className="text-lg font-semibold">
                   {isSearchMode
-                    ? `Search Results (${emails.length})`
-                    : mailboxes.find((m) => m.id === selectedMailboxId)?.name ||
-                      "Inbox"}
+                    ? `${t("kanban.searchResults")} (${emails.length})`
+                    : getMailboxDisplayName(selectedMailboxId)}
                 </h2>
                 <div className="flex items-center gap-2">
                   <EmailFilters
@@ -2103,97 +2099,9 @@ export function InboxPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      toast.info("Keyboard Shortcuts", {
-                        description: (
-                          <div className="text-xs space-y-1 mt-2">
-                            <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                j/k
-                              </kbd>{" "}
-                              or{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                ↑/↓
-                              </kbd>{" "}
-                              Navigate
-                            </div>
-                            {/* <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                Enter
-                              </kbd>{" "}
-                              or{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                o
-                              </kbd>{" "}
-                              Open
-                            </div> */}
-                            <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                Esc
-                              </kbd>{" "}
-                              Close
-                            </div>
-                            <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                c
-                              </kbd>{" "}
-                              Compose
-                            </div>
-                            <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                r
-                              </kbd>{" "}
-                              Reply |{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                a
-                              </kbd>{" "}
-                              Reply All |{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                f
-                              </kbd>{" "}
-                              Forward
-                            </div>
-                            <div>
-                              {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                e
-                              </kbd>{" "}
-                              Archive |{" "} */}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                #
-                              </kbd>{" "}
-                              Delete |{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                s
-                              </kbd>{" "}
-                              Star |
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                u
-                              </kbd>{" "}
-                              Mark Unread{" "}
-                            </div>
-                            <div>
-                              {/* <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                x
-                              </kbd>{" "}
-                              Select */}
-                            </div>
-                            <div>
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                v
-                              </kbd>{" "}
-                              Toggle View |{" "}
-                              <kbd className="px-1.5 py-0.5 bg-muted rounded">
-                                /
-                              </kbd>{" "}
-                              Search
-                            </div>
-                          </div>
-                        ),
-                        duration: 8000,
-                      });
-                    }}
+                    onClick={showShortcutsToast}
                     className="gap-2"
-                    title="Keyboard shortcuts (Press ? for help)"
+                    title={language === "vi" ? "Phím tắt (Bấm ? để xem trợ giúp)" : "Keyboard shortcuts (Press ? for help)"}
                   >
                     <span className="text-lg font-semibold">?</span>
                   </Button>
@@ -2209,8 +2117,10 @@ export function InboxPage() {
                     className="gap-2"
                   >
                     <LayoutGrid className="h-4 w-4" />
-                    Kanban View
+                    {t("nav.kanban")}
                   </Button>
+                  <div className="h-4 w-[1px] bg-border mx-1" />
+                  <ThemeToggle />
                 </div>
               </div>
 
@@ -2286,6 +2196,11 @@ export function InboxPage() {
           </>
         )}
       </div>
+
+      <SettingsModal
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+      />
 
       <ComposeEmailModal
         isOpen={isComposeOpen}
